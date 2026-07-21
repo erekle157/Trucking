@@ -1,4 +1,4 @@
-<!doctype html><html lang="ka"><head>
+<!doctype html><html lang="ka" data-theme="light"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2fa36b">
@@ -11,85 +11,109 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <style>
+  :root{
+    --bg:#f4f5f7; --text:#1c2333; --muted:#7a8194; --muted2:#9aa0af; --sub:#5a6172; --btn-text:#4a5163;
+    --card:#fff; --shadow:rgba(0,0,0,.06); --border:#d8dbe3; --border-soft:#eef0f4; --row-line:#f2f3f6;
+    --input-bg:#fafbfc; --accent:#2fa36b; --accent-dark:#268758; --chip:#eceef2; --chip-hover:#dfe2e8;
+    --tab-active-bg:#1c2333; --tab-active-text:#fff; --head-bg:#fbf6ec; --pchip:#eef7f1; --del:#c04a4a;
+    --del-soft:#c8a2a2; --bar-bg:rgba(244,245,247,.98); color-scheme:light;
+  }
+  :root[data-theme="dark"]{
+    --bg:#14161a; --text:#e6e8ec; --muted:#9aa2b0; --muted2:#6f7686; --sub:#b7bcc6; --btn-text:#c2c7d0;
+    --card:#1e2128; --shadow:rgba(0,0,0,.4); --border:#333844; --border-soft:#2a2f39; --row-line:#262a32;
+    --input-bg:#262a32; --accent:#35b378; --accent-dark:#2a9463; --chip:#2a2f39; --chip-hover:#343a46;
+    --tab-active-bg:#e6e8ec; --tab-active-text:#14161a; --head-bg:#2b2721; --pchip:#1f3328; --del:#e07a7a;
+    --del-soft:#8a5b5b; --bar-bg:rgba(20,22,26,.98); color-scheme:dark;
+  }
   * { box-sizing: border-box; }
   html,body { -webkit-text-size-adjust:100%; }
   body { margin:0; padding:12px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:#f4f5f7; color:#1c2333; max-width:820px; margin:0 auto; }
+    background:var(--bg); color:var(--text); max-width:820px; margin:0 auto; }
   .topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
   h1 { font-size:19px; margin:0; }
-  .langsw { display:flex; border:1px solid #d8dbe3; border-radius:9px; overflow:hidden; flex:0 0 auto; }
-  .langsw button { background:#fff; color:#7a8194; border:none; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; }
-  .langsw button.active { background:#1c2333; color:#fff; }
+  .topright { display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+  .iconbtn { background:var(--card); border:1px solid var(--border); border-radius:9px; padding:5px 9px; font-size:14px; cursor:pointer; line-height:1; }
+  .langsw { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+  .langsw button { background:var(--card); color:var(--muted); border:none; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+  .langsw button.active { background:var(--tab-active-bg); color:var(--tab-active-text); }
   .cloud { font-size:11px; margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
-  .gbtn { background:#fff; border:1px solid #d8dbe3; color:#1c2333; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
-  .gbtn:hover { background:#f0f1f4; }
-  .signout { color:#9aa0af; cursor:pointer; text-decoration:underline; }
-  .card { background:#fff; border-radius:12px; padding:12px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:12px; }
+  .gbtn { background:var(--card); border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
+  .gbtn:hover { background:var(--chip-hover); }
+  .signout { color:var(--muted2); cursor:pointer; text-decoration:underline; }
+  .card { background:var(--card); border-radius:12px; padding:12px; box-shadow:0 1px 3px var(--shadow); margin-bottom:12px; }
   .row { display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; }
-  label { display:block; font-size:11px; color:#7a8194; margin-bottom:3px; }
-  input { width:100%; padding:9px 10px; border:1px solid #d8dbe3; border-radius:9px; font-size:16px; background:#fafbfc; }
-  input:focus { outline:none; border-color:#2fa36b; background:#fff; }
+  label { display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+  input { width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:9px; font-size:16px; background:var(--input-bg); color:var(--text); }
+  input:focus { outline:none; border-color:var(--accent); background:var(--card); }
   .f-price { flex:0 0 120px; } .f-date { flex:1 1 200px; }
   .date-row { display:flex; gap:6px; align-items:stretch; }
   .date-row input { flex:1; }
-  .daybtn { background:#eceef2; color:#4a5163; padding:0 13px; font-size:15px; font-weight:700; border:none; border-radius:9px; cursor:pointer; }
-  .daybtn:hover { background:#dfe2e8; }
-  button.add { padding:9px 20px; border:none; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer; background:#2fa36b; color:#fff; }
-  button.add:hover { background:#268758; }
-  .settings { display:flex; align-items:center; gap:8px; font-size:12px; color:#7a8194; margin-top:10px; }
+  .daybtn { background:var(--chip); color:var(--btn-text); padding:0 13px; font-size:15px; font-weight:700; border:none; border-radius:9px; cursor:pointer; }
+  .daybtn:hover { background:var(--chip-hover); }
+  button.add { padding:9px 20px; border:none; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer; background:var(--accent); color:#fff; }
+  button.add:hover { background:var(--accent-dark); }
+  .settings { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-top:10px; }
   .settings input { width:64px; }
   .cards { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; }
-  .stat { flex:0 0 150px; background:#fff; border-radius:11px; padding:9px 11px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
-  .stat .lbl { font-size:11px; color:#7a8194; }
-  .stat .share-main { font-size:17px; font-weight:800; color:#2fa36b; margin-top:2px; }
-  .stat .gross-sub { font-size:11px; color:#7a8194; margin-top:2px; }
-  .stat .cnt { font-size:10px; color:#9aa0af; margin-top:1px; }
+  .stat { flex:0 0 150px; background:var(--card); border-radius:11px; padding:9px 11px; box-shadow:0 1px 3px var(--shadow); }
+  .stat .lbl { font-size:11px; color:var(--muted); }
+  .stat .share-main { font-size:17px; font-weight:800; color:var(--accent); margin-top:2px; }
+  .stat .gross-sub { font-size:11px; color:var(--muted); margin-top:2px; }
+  .stat .cnt { font-size:10px; color:var(--muted2); margin-top:1px; }
   .tabs { display:flex; gap:6px; margin-bottom:9px; flex-wrap:wrap; }
-  .tabs button { background:#eceef2; color:#4a5163; padding:6px 11px; font-size:12px; border:none; border-radius:9px; cursor:pointer; font-weight:600; }
-  .tabs button.active { background:#1c2333; color:#fff; }
-  .empty { text-align:center; color:#9aa0af; padding:20px; }
-  .reset { background:none; color:#9aa0af; font-size:11px; padding:4px; float:right; border:none; cursor:pointer; }
-  .reset:hover { color:#c04a4a; }
+  .tabs button { background:var(--chip); color:var(--btn-text); padding:6px 11px; font-size:12px; border:none; border-radius:9px; cursor:pointer; font-weight:600; }
+  .tabs button.active { background:var(--tab-active-bg); color:var(--tab-active-text); }
+  .empty { text-align:center; color:var(--muted2); padding:20px; }
+  .reset { background:none; color:var(--muted2); font-size:11px; padding:4px; float:right; border:none; cursor:pointer; }
+  .reset:hover { color:var(--del); }
   .week-nav { display:flex; justify-content:space-between; margin-bottom:9px; gap:6px; }
-  .navbtn { background:#eceef2; color:#4a5163; padding:7px 10px; border:none; border-radius:9px; cursor:pointer; font-size:12px; font-weight:600; }
-  .navbtn:hover { background:#dfe2e8; }
+  .navbtn { background:var(--chip); color:var(--btn-text); padding:7px 10px; border:none; border-radius:9px; cursor:pointer; font-size:12px; font-weight:600; }
+  .navbtn:hover { background:var(--chip-hover); }
   .navbtn:disabled { opacity:.4; cursor:default; }
   .week-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .week-col { border:1px solid #eef0f4; border-radius:11px; overflow:hidden; }
-  .week-head { background:#fbf6ec; padding:7px 9px; font-weight:700; font-size:12px; }
-  .wk-yr { color:#9aa0af; font-weight:500; font-size:11px; }
+  .week-col { border:1px solid var(--border-soft); border-radius:11px; overflow:hidden; }
+  .week-head { background:var(--head-bg); padding:7px 9px; font-weight:700; font-size:12px; }
+  .wk-yr { color:var(--muted2); font-weight:500; font-size:11px; }
   .week-body { padding:1px 0; }
-  .wk-empty { padding:14px 9px; color:#9aa0af; text-align:center; font-size:12px; }
-  .day-row { padding:6px 9px; border-bottom:1px solid #f2f3f6; }
+  .wk-empty { padding:14px 9px; color:var(--muted2); text-align:center; font-size:12px; }
+  .day-row { padding:6px 9px; border-bottom:1px solid var(--row-line); }
   .day-row:last-child { border-bottom:none; }
-  .day-label { font-size:11px; color:#7a8194; margin-bottom:4px; }
+  .day-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .day-prices { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-  .pchip { display:inline-flex; align-items:center; gap:5px; background:#eef7f1; color:#1c2333; border-radius:7px; padding:2px 7px; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
-  .pchip button { background:none; border:none; color:#c8a2a2; cursor:pointer; font-size:11px; padding:0; line-height:1; }
-  .pchip button:hover { color:#c04a4a; }
-  .day-sum { margin-left:auto; font-size:10px; color:#9aa0af; font-variant-numeric:tabular-nums; }
-  .week-foot { padding:7px 9px; border-top:2px solid #eef0f4; font-size:12px; display:flex; flex-direction:column; gap:1px; }
-  .week-foot .fshare { font-size:14px; color:#2fa36b; font-weight:700; }
-  .wk-cnt { color:#9aa0af; font-size:10px; }
+  .pchip { display:inline-flex; align-items:center; gap:5px; background:var(--pchip); color:var(--text); border-radius:7px; padding:2px 7px; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .pchip button { background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:11px; padding:0; line-height:1; }
+  .pchip button:hover { color:var(--del); }
+  .day-sum { margin-left:auto; font-size:10px; color:var(--muted2); font-variant-numeric:tabular-nums; }
+  .week-foot { padding:7px 9px; border-top:2px solid var(--border-soft); font-size:12px; display:flex; flex-direction:column; gap:1px; }
+  .week-foot .fshare { font-size:14px; color:var(--accent); font-weight:700; }
+  .wk-cnt { color:var(--muted2); font-size:10px; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
-  th, td { text-align:left; padding:8px; border-bottom:1px solid #eef0f4; }
-  th { color:#7a8194; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
+  th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border-soft); }
+  th { color:var(--muted); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
   td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
-  .grp { background:#fbf6ec; font-weight:700; }
-  .share-col { color:#2fa36b; font-weight:600; }
-  .del { background:none; color:#c04a4a; padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
-  #kbBar { position:fixed; left:0; right:0; bottom:0; padding:7px 12px; background:rgba(244,245,247,.98);
-    border-top:1px solid #e2e5ea; display:none; z-index:9999; }
+  .grp { background:var(--head-bg); font-weight:700; }
+  .rowday { color:var(--sub); }
+  .share-col { color:var(--accent); font-weight:600; }
+  .del { background:none; color:var(--del); padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
+  .udbar { position:fixed; right:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:500; }
+  .udbtn { width:46px; height:46px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text);
+    font-size:20px; cursor:pointer; box-shadow:0 2px 8px var(--shadow); display:flex; align-items:center; justify-content:center; }
+  .udbtn:disabled { opacity:.35; cursor:default; }
+  #kbBar { position:fixed; left:0; right:0; bottom:0; padding:7px 12px; background:var(--bar-bg);
+    border-top:1px solid var(--border); display:none; z-index:9999; }
   #kbBar.show { display:block; }
-  .kb-add { width:100%; padding:13px; border:none; border-radius:11px; background:#2fa36b; color:#fff; font-size:16px; font-weight:700; }
+  .kb-add { width:100%; padding:13px; border:none; border-radius:11px; background:var(--accent); color:#fff; font-size:16px; font-weight:700; }
 </style>
 </head><body>
 
 <div class="topbar">
   <h1>🚚 <span id="appTitle"></span></h1>
-  <div class="langsw">
-    <button id="langKa" onclick="setLang('ka')">GEO</button>
-    <button id="langEn" onclick="setLang('en')">ENG</button>
+  <div class="topright">
+    <button id="themeBtn" class="iconbtn" onclick="toggleTheme()">🌙</button>
+    <div class="langsw">
+      <button id="langKa" onclick="setLang('ka')">GEO</button>
+      <button id="langEn" onclick="setLang('en')">ENG</button>
+    </div>
   </div>
 </div>
 <div class="cloud" id="cloudStatus"></div>
@@ -106,6 +130,11 @@
     </div>
     <button class="add" id="add"></button>
   </div>
+  <div class="row" style="margin-top:8px;">
+    <div style="flex:1 1 auto"><label id="lblRoute"></label><input id="route" type="text"/></div>
+    <button class="add" id="imgBtn" style="flex:0 0 auto;background:var(--chip);color:var(--btn-text)">📷</button>
+    <input id="imgInput" type="file" accept="image/*" style="display:none"/>
+  </div>
   <div class="settings"><span id="lblShare"></span> <input id="share" type="number" min="0" max="100" step="1"/> %</div>
 </div>
 
@@ -118,7 +147,11 @@
     <button id="tab-all" onclick="setView('all')"></button>
   </div>
   <div id="content"></div>
-  <button class="reset" id="resetBtn" onclick="resetAll()"></button>
+</div>
+
+<div class="udbar">
+  <button id="redoBtn" class="udbtn" onclick="redo()">↷</button>
+  <button id="undoBtn" class="udbtn" onclick="undo()">↶</button>
 </div>
 
 <div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
@@ -143,6 +176,16 @@ const firebaseConfig = {
   appId: "1:237965493114:web:3cdadba88d127e77ea0cc3"
 };
 
+// ---- თემა / theme ----
+let currentTheme = 'light';
+function applyTheme(th){
+  currentTheme = (th==='dark')?'dark':'light';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  const b=document.getElementById('themeBtn'); if(b) b.textContent = currentTheme==='dark'?'☀️':'🌙';
+  const m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', currentTheme==='dark'?'#14161a':'#2fa36b');
+}
+function toggleTheme(){ const nx = currentTheme==='dark'?'light':'dark'; applyTheme(nx); store.set('theme', nx); }
+
 // ---- ენა / language ----
 let lang = 'ka';
 const T = {
@@ -152,14 +195,14 @@ const T = {
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",
     navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually" }
 };
 function t(k){ return (T[lang]&&T[lang][k])||k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -187,9 +230,9 @@ let db=null, cloudUid=null, cloudEmail='', isSignedIn=false, firstSnap=true, pus
 function renderAuthBar(){
   const el=document.getElementById('cloudStatus'); if(!el) return;
   if(isSignedIn){
-    el.innerHTML='<span style="color:#2fa36b">'+t('syncOn')+(cloudEmail?' · '+cloudEmail:'')+'</span> <span class="signout" onclick="signOutCloud()">'+t('signOut')+'</span>';
+    el.innerHTML='<span style="color:var(--accent)">'+t('syncOn')+(cloudEmail?' · '+cloudEmail:'')+'</span> <span class="signout" onclick="signOutCloud()">'+t('signOut')+'</span>';
   } else {
-    el.innerHTML='<span style="color:#9aa0af">'+t('syncOff')+'</span> <button class="gbtn" onclick="signInGoogle()">'+t('googleSync')+'</button>';
+    el.innerHTML='<span style="color:var(--muted2)">'+t('syncOff')+'</span> <button class="gbtn" onclick="signInGoogle()">'+t('googleSync')+'</button>';
   }
 }
 function signInGoogle(){
@@ -247,6 +290,7 @@ function initCloud(){
 }
 
 function money(n){ return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
@@ -262,6 +306,8 @@ function applyStaticLabels(){
   document.getElementById('appTitle').textContent = t('title');
   document.getElementById('lblPrice').textContent = t('price');
   document.getElementById('price').placeholder = t('pricePh');
+  document.getElementById('lblRoute').textContent = t('route');
+  document.getElementById('route').placeholder = t('routePh');
   document.getElementById('lblDate').textContent = t('date');
   document.getElementById('dayPrev').title = t('prevDay');
   document.getElementById('dayNext').title = t('nextDay');
@@ -270,17 +316,17 @@ function applyStaticLabels(){
   document.getElementById('tab-week').textContent = t('byWeek');
   document.getElementById('tab-month').textContent = t('byMonth');
   document.getElementById('tab-all').textContent = t('all');
-  document.getElementById('resetBtn').textContent = t('clearAll');
+  document.getElementById('undoBtn').title = t('undo');
+  document.getElementById('redoBtn').title = t('redo');
   document.getElementById('kbAdd').textContent = t('addEnter');
   document.getElementById('langKa').classList.toggle('active', lang==='ka');
   document.getElementById('langEn').classList.toggle('active', lang==='en');
 }
-function setLang(l){
-  lang=l; store.set('lang', l);
-  applyStaticLabels(); renderAuthBar(); render();
-}
+function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); renderAuthBar(); render(); }
 
 async function load(){
+  try{ const r=await store.get('theme'); if(r==='dark'||r==='light') applyTheme(r);
+       else applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'); }catch(e){ applyTheme('light'); }
   try{ const r=await store.get('lang'); if(r==='en'||r==='ka') lang=r; }catch(e){}
   try{ const r=await store.get('cars'); if(r) cars=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('settings'); if(r) settings=JSON.parse(r); }catch(e){}
@@ -291,11 +337,18 @@ async function load(){
   document.getElementById('share').value=settings.share;
   document.getElementById('date').value=todayStr();
   render();
+  updateUndoRedo();
   if(changed) saveCars();
   initCloud();
 }
 async function saveCars(){ await store.set('cars',JSON.stringify(cars)); pushCloud(); }
 async function saveSettings(){ await store.set('settings',JSON.stringify(settings)); pushCloud(); }
+
+let undoStack=[], redoStack=[];
+function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
+function pushHistory(){ undoStack.push(JSON.stringify(cars)); if(undoStack.length>100) undoStack.shift(); redoStack=[]; updateUndoRedo(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(cars)); cars=JSON.parse(undoStack.pop()); saveCars(); render(); updateUndoRedo(); }
+function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(cars)); cars=JSON.parse(redoStack.pop()); saveCars(); render(); updateUndoRedo(); }
 
 function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); }
 function addCar(){
@@ -303,12 +356,14 @@ function addCar(){
   const price=parseFloat(priceEl.value);
   if(!price||price<=0){ priceEl.focus(); return; }
   const date=document.getElementById('date').value||todayStr();
-  cars.push({ id:Date.now()+''+Math.random(), price, date });
-  priceEl.value='';
+  const route=document.getElementById('route').value.trim();
+  pushHistory();
+  cars.push({ id:Date.now()+''+Math.random(), price, date, route });
+  priceEl.value=''; document.getElementById('route').value='';
   weekPage=0;
   saveCars(); render(); priceEl.focus();
 }
-function delCar(id){ cars=cars.filter(c=>c.id!==id); saveCars(); render(); }
+function delCar(id){ pushHistory(); cars=cars.filter(c=>c.id!==id); saveCars(); render(); }
 function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===v)); render(); }
 function navWeek(d){ weekPage=Math.max(0, weekPage+d); render(); }
 function resetAll(){ if(confirm(t('confirmClear'))){ cars=[]; saveCars(); render(); } }
@@ -348,7 +403,7 @@ function weekColumn(mon){
     ? days.map(d=>{
         const items=byDay[d];
         const dsum=items.reduce((a,x)=>a+x.price,0);
-        const chips=items.map(c=>`<span class="pchip">${money(c.price)}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+        const chips=items.map(c=>`<span class="pchip">${money(c.price)}${c.route?' · '+esc(c.route):''}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
         const sum = items.length>1 ? `<span class="day-sum">= ${money(dsum)}</span>` : '';
         return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
       }).join('')
@@ -381,8 +436,8 @@ function renderContent(){
   if(cars.length===0){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
   if(view==='all'){
     const all=[...cars].sort((a,b)=>a.date<b.date?1:-1);
-    c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
-      all.map(x=>`<tr><td style="color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
+    c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
+      all.map(x=>`<tr><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.route||'')}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
     return;
   }
   const groups={}; cars.forEach(x=>{ const k=monthKey(x.date); (groups[k]=groups[k]||[]).push(x); });
@@ -392,7 +447,7 @@ function renderContent(){
     const list=groups[k].sort((a,b)=>a.date<b.date?-1:1);
     const g=list.reduce((a,x)=>a+x.price,0);
     html+=`<tr class="grp"><td>${fmtMonth(k)} · ${list.length} ${t('carsShort')}</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
-    list.forEach(x=>{ html+=`<tr><td style="padding-left:22px;color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`; });
+    list.forEach(x=>{ html+=`<tr><td class="rowday" style="padding-left:22px">${fmtDay(x.date)}${x.route?' · '+esc(x.route):''}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`; });
   });
   html+=`</tbody></table>`; c.innerHTML=html;
 }
@@ -401,6 +456,33 @@ function render(){ renderStats(); renderContent(); }
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
+
+// --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
+let tessLoading=null;
+function ensureTesseract(){
+  if(typeof Tesseract!=='undefined') return Promise.resolve();
+  if(tessLoading) return tessLoading;
+  tessLoading=new Promise((res,rej)=>{ const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'; s.onload=res; s.onerror=rej; document.head.appendChild(s); });
+  return tessLoading;
+}
+function parseOCR(text){
+  const m=text.match(/\$\s?\d[\d,]*(?:\.\d{1,2})?/g);
+  if(m&&m.length){ let best=0; m.forEach(x=>{ const v=parseFloat(x.replace(/[^0-9.]/g,'')); if(v>best) best=v; }); if(best>0) document.getElementById('price').value=best; }
+  const cs=text.match(/[A-Za-z][A-Za-z .'\-]{1,22},\s*[A-Z]{2}(?![A-Za-z])/g);
+  if(cs&&cs.length>=2){ document.getElementById('route').value=cs[0].trim()+' → '+cs[cs.length-1].trim(); }
+  else { const ft=text.match(/from\s+(.+?)\s+to\s+([^\n]+)/i); if(ft) document.getElementById('route').value=ft[1].trim()+' → '+ft[2].trim(); }
+  document.getElementById('price').focus();
+}
+async function handleImage(file){
+  if(!file) return;
+  const btn=document.getElementById('imgBtn'); const orig=btn.textContent; btn.textContent='⏳'; btn.disabled=true;
+  try{ await ensureTesseract(); const r=await Tesseract.recognize(file,'eng'); parseOCR(r.data.text||''); }
+  catch(e){ console.warn('OCR', e); alert(t('ocrFail')); }
+  btn.textContent=orig; btn.disabled=false;
+}
+document.getElementById('imgBtn').addEventListener('click', ()=>document.getElementById('imgInput').click());
+document.getElementById('imgInput').addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; handleImage(f); e.target.value=''; });
 
 (function(){
   const kbBar=document.getElementById('kbBar');
