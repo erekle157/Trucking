@@ -1,0 +1,270 @@
+<!doctype html><html lang="ka"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2fa36b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="გადაზიდვა">
+<title>გადაზიდვის ტრეკერი</title>
+<style>
+  * { box-sizing: border-box; }
+  html,body { -webkit-text-size-adjust:100%; }
+  body { margin:0; padding:20px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:#f4f5f7; color:#1c2333; max-width:820px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:#7a8194; font-size:13px; margin-bottom:18px; }
+  .card { background:#fff; border-radius:14px; padding:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); margin-bottom:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  label { display:block; font-size:12px; color:#7a8194; margin-bottom:4px; }
+  input { width:100%; padding:10px 12px; border:1px solid #d8dbe3; border-radius:9px; font-size:16px; background:#fafbfc; }
+  input:focus { outline:none; border-color:#2fa36b; background:#fff; }
+  .f-price { flex:0 0 150px; } .f-date { flex:1 1 220px; }
+  .date-row { display:flex; gap:6px; align-items:stretch; }
+  .date-row input { flex:1; }
+  .daybtn { background:#eceef2; color:#4a5163; padding:0 14px; font-size:16px; font-weight:700; border:none; border-radius:9px; cursor:pointer; }
+  .daybtn:hover { background:#dfe2e8; }
+  button.add { padding:10px 22px; border:none; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer; background:#2fa36b; color:#fff; }
+  button.add:hover { background:#268758; }
+  .cards { display:flex; gap:10px; overflow-x:auto; padding-bottom:8px; margin-bottom:8px; }
+  .stat { flex:0 0 190px; background:#fff; border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .stat .lbl { font-size:12px; color:#7a8194; }
+  .stat .share-main { font-size:20px; font-weight:800; color:#2fa36b; margin-top:4px; }
+  .stat .gross-sub { font-size:12px; color:#7a8194; margin-top:3px; }
+  .stat .cnt { font-size:11px; color:#9aa0af; margin-top:2px; }
+  .settings { display:flex; align-items:center; gap:8px; font-size:13px; color:#7a8194; margin-top:12px; }
+  .settings input { width:70px; }
+  .tabs { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .tabs button { background:#eceef2; color:#4a5163; padding:7px 14px; font-size:13px; border:none; border-radius:9px; cursor:pointer; font-weight:600; }
+  .tabs button.active { background:#1c2333; color:#fff; }
+  .empty { text-align:center; color:#9aa0af; padding:24px; }
+  .reset { background:none; color:#9aa0af; font-size:12px; padding:4px; float:right; border:none; cursor:pointer; }
+  .reset:hover { color:#c04a4a; }
+  .week-nav { display:flex; justify-content:space-between; margin-bottom:12px; gap:8px; }
+  .navbtn { background:#eceef2; color:#4a5163; padding:8px 14px; border:none; border-radius:9px; cursor:pointer; font-size:13px; font-weight:600; }
+  .navbtn:hover { background:#dfe2e8; }
+  .navbtn:disabled { opacity:.4; cursor:default; }
+  .week-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  @media (max-width:560px){ .week-grid{grid-template-columns:1fr;} }
+  .week-col { border:1px solid #eef0f4; border-radius:12px; overflow:hidden; }
+  .week-head { background:#fbf6ec; padding:10px 12px; font-weight:700; font-size:14px; }
+  .wk-yr { color:#9aa0af; font-weight:500; font-size:12px; }
+  .week-body { padding:2px 0; }
+  .wk-empty { padding:18px 12px; color:#9aa0af; text-align:center; font-size:13px; }
+  .day-row { padding:8px 12px; border-bottom:1px solid #f2f3f6; }
+  .day-row:last-child { border-bottom:none; }
+  .day-label { font-size:12px; color:#7a8194; margin-bottom:5px; }
+  .day-prices { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .pchip { display:inline-flex; align-items:center; gap:5px; background:#eef7f1; color:#1c2333; border-radius:8px; padding:3px 8px; font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .pchip button { background:none; border:none; color:#c8a2a2; cursor:pointer; font-size:11px; padding:0; line-height:1; }
+  .pchip button:hover { color:#c04a4a; }
+  .day-sum { margin-left:auto; font-size:11px; color:#9aa0af; font-variant-numeric:tabular-nums; }
+  .week-foot { padding:10px 12px; border-top:2px solid #eef0f4; font-size:13px; display:flex; flex-direction:column; gap:2px; }
+  .week-foot .fshare { font-size:16px; color:#2fa36b; font-weight:700; }
+  .wk-cnt { color:#9aa0af; font-size:11px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:9px 8px; border-bottom:1px solid #eef0f4; }
+  th { color:#7a8194; font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.3px; }
+  td.num, th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .grp { background:#fbf6ec; font-weight:700; }
+  .share-col { color:#2fa36b; font-weight:600; }
+  .del { background:none; color:#c04a4a; padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
+  .del:hover { background:#fbeaea; }
+</style>
+</head><body>
+
+<h1>🚚 გადაზიდვის ტრეკერი</h1>
+<div class="sub">ჩაწერ მანქანის ფასს და მაშინვე ითვლება. შენი წილი ავტომატურად გამოითვლება.</div>
+
+<div class="card">
+  <div class="row">
+    <div class="f-price"><label>ფასი ($)</label><input id="price" type="number" inputmode="decimal" placeholder="მაგ. 500"/></div>
+    <div class="f-date"><label>თარიღი</label>
+      <div class="date-row">
+        <button class="daybtn" onclick="changeDate(-1)" title="წინა დღე">◀</button>
+        <input id="date" type="date"/>
+        <button class="daybtn" onclick="changeDate(1)" title="შემდეგი დღე">▶</button>
+      </div>
+    </div>
+    <button class="add" id="add">დამატება</button>
+  </div>
+  <div class="settings">ჩემი წილი: <input id="share" type="number" min="0" max="100" step="1"/> %</div>
+</div>
+
+<div class="cards" id="stats"></div>
+
+<div class="card" style="margin-top:8px;">
+  <div class="tabs">
+    <button id="tab-week" class="active" onclick="setView('week')">კვირების მიხედვით</button>
+    <button id="tab-month" onclick="setView('month')">თვეების მიხედვით</button>
+    <button id="tab-all" onclick="setView('all')">ყველა</button>
+  </div>
+  <div id="content"></div>
+  <button class="reset" onclick="resetAll()">ყველაფრის წაშლა</button>
+</div>
+
+<script>
+// --- PWA: მთავარ ეკრანზე დაყენებისთვის ---
+(function(){
+  var icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' rx='104' fill='%232fa36b'/%3E%3Ctext x='50%25' y='55%25' font-size='300' text-anchor='middle' dominant-baseline='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E";
+  try{
+    var manifest={name:"გადაზიდვის ტრეკერი",short_name:"გადაზიდვა",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#f4f5f7",theme_color:"#2fa36b",icons:[{src:icon,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
+    var blob=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
+    var l=document.createElement("link"); l.rel="manifest"; l.href=URL.createObjectURL(blob); document.head.appendChild(l);
+    var al=document.createElement("link"); al.rel="apple-touch-icon"; al.href=icon; document.head.appendChild(al);
+  }catch(e){}
+})();
+
+let cars = [];
+let settings = { share: 33 };
+let view = 'week';
+let weekPage = 0;
+const hasStore = typeof window !== 'undefined' && window.storage;
+
+// მონაცემები ინახება: Claude-ში window.storage, ცალკე გახსნისას ტელეფონის მეხსიერება (localStorage)
+const store = {
+  async get(key){
+    if(hasStore){ try{ const r=await window.storage.get('haul:'+key); return r?r.value:null; }catch(e){} }
+    try{ return localStorage.getItem('haul:'+key); }catch(e){ return null; }
+  },
+  async set(key,val){
+    if(hasStore){ try{ await window.storage.set('haul:'+key,val); return; }catch(e){} }
+    try{ localStorage.setItem('haul:'+key,val); }catch(e){}
+  }
+};
+
+function money(n){ return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
+function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+function mondayOf(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
+function fmtDay(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString('ka-GE',{weekday:'short',day:'numeric',month:'short'}); }
+function dm(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString('ka-GE',{day:'numeric',month:'short'}); }
+function monthKey(s){ return (s||'').slice(0,7); }
+function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString('ka-GE',{month:'long',year:'numeric'}); }
+function shareOf(g){ return g*(settings.share/100); }
+
+async function load(){
+  try{ const r=await store.get('cars'); if(r) cars=JSON.parse(r); }catch(e){}
+  try{ const r=await store.get('settings'); if(r) settings=JSON.parse(r); }catch(e){}
+  let changed=false;
+  cars = cars.map(c=>{ if(!c.date){ c.date=c.deliveryDate||c.pickupDate||todayStr(); changed=true; } return c; })
+             .filter(c=>valid(c.date));
+  if(changed) saveCars();
+  document.getElementById('share').value=settings.share;
+  document.getElementById('date').value=todayStr();
+  render();
+}
+async function saveCars(){ await store.set('cars',JSON.stringify(cars)); }
+async function saveSettings(){ await store.set('settings',JSON.stringify(settings)); }
+
+function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); }
+function addCar(){
+  const price=parseFloat(document.getElementById('price').value);
+  if(!price||price<=0){ document.getElementById('price').focus(); return; }
+  const date=document.getElementById('date').value||todayStr();
+  cars.push({ id:Date.now()+''+Math.random(), price, date });
+  document.getElementById('price').value='';
+  weekPage=0;
+  saveCars(); render(); document.getElementById('price').focus();
+}
+function delCar(id){ cars=cars.filter(c=>c.id!==id); saveCars(); render(); }
+function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===v)); render(); }
+function navWeek(d){ weekPage=Math.max(0, weekPage+d); render(); }
+function resetAll(){ if(confirm('ნამდვილად წავშალო ყველა ჩანაწერი?')){ cars=[]; saveCars(); render(); } }
+
+function renderStats(){
+  const t=todayStr(), wk=mondayOf(t), lastWk=addDays(wk,-7), mk=monthKey(t), yr=t.slice(0,4);
+  const filt=(fn)=>{ const arr=cars.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
+  const data=[
+    ['ამ კვირაში', filt(c=>mondayOf(c.date)===wk)],
+    ['წინა კვირა', filt(c=>mondayOf(c.date)===lastWk)],
+    ['ამ თვეში', filt(c=>monthKey(c.date)===mk)],
+    ['წელს '+yr, filt(c=>c.date.slice(0,4)===yr)],
+    ['სულ', filt(()=>true)]
+  ];
+  document.getElementById('stats').innerHTML=data.map(([l,o])=>`
+    <div class="stat"><div class="lbl">${l} — ჩემი წილი</div>
+      <div class="share-main">${money(shareOf(o.g))}</div>
+      <div class="gross-sub">Gross: ${money(o.g)}</div>
+      <div class="cnt">${o.n} მანქანა</div>
+    </div>`).join('');
+}
+
+function anchorMon(){
+  const todayMon=mondayOf(todayStr());
+  if(!cars.length) return todayMon;
+  const maxDate=cars.reduce((m,c)=>c.date>m?c.date:m, cars[0].date);
+  const dataMon=mondayOf(maxDate);
+  return dataMon>todayMon?dataMon:todayMon;
+}
+function weekColumn(mon){
+  const list=cars.filter(c=>mondayOf(c.date)===mon);
+  const g=list.reduce((a,x)=>a+x.price,0);
+  const sun=addDays(mon,6);
+  const byDay={}; list.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
+  const days=Object.keys(byDay).sort();
+  const body = days.length
+    ? days.map(d=>{
+        const items=byDay[d];
+        const dsum=items.reduce((a,x)=>a+x.price,0);
+        const chips=items.map(c=>`<span class="pchip">${money(c.price)}<button onclick="delCar('${c.id}')" title="წაშლა">✕</button></span>`).join('');
+        const sum = items.length>1 ? `<span class="day-sum">= ${money(dsum)}</span>` : '';
+        return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
+      }).join('')
+    : `<div class="wk-empty">— ჩანაწერი არ არის —</div>`;
+  return `<div class="week-col">
+    <div class="week-head">${dm(mon)} – ${dm(sun)} <span class="wk-yr">${mon.slice(0,4)}</span></div>
+    <div class="week-body">${body}</div>
+    <div class="week-foot">
+      <div>Gross: <b>${money(g)}</b></div>
+      <div class="fshare">ჩემი წილი: ${money(shareOf(g))}</div>
+      <div class="wk-cnt">${list.length} მანქანა</div>
+    </div>
+  </div>`;
+}
+function renderWeekView(){
+  const curMon=anchorMon();
+  const newest=addDays(curMon,-7*weekPage);
+  const older=addDays(newest,-7);
+  const canNewer=weekPage>0;
+  return `<div class="week-nav">
+      <button class="navbtn" onclick="navWeek(2)">◀ წინა კვირები</button>
+      <button class="navbtn" onclick="navWeek(-2)" ${canNewer?'':'disabled'}>შემდეგი კვირები ▶</button>
+    </div>
+    <div class="week-grid">${weekColumn(older)}${weekColumn(newest)}</div>`;
+}
+
+function carRow(c){
+  return `<tr><td style="padding-left:22px;color:#5a6172">${fmtDay(c.date)}</td><td class="num">${money(c.price)}</td><td class="num"><button class="del" onclick="delCar('${c.id}')">წაშლა</button></td></tr>`;
+}
+function renderContent(){
+  const c=document.getElementById('content');
+  if(view==='week'){ c.innerHTML=renderWeekView(); return; }
+  if(cars.length===0){ c.innerHTML='<div class="empty">ჯერ ჩანაწერი არ არის. დაამატე პირველი მანქანა ⬆️</div>'; return; }
+  if(view==='all'){
+    const all=[...cars].sort((a,b)=>a.date<b.date?1:-1);
+    c.innerHTML=`<table><thead><tr><th>დღე</th><th class="num">ფასი</th><th></th></tr></thead><tbody>${
+      all.map(x=>`<tr><td style="color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">წაშლა</button></td></tr>`).join('')}</tbody></table>`;
+    return;
+  }
+  const groups={}; cars.forEach(x=>{ const k=monthKey(x.date); (groups[k]=groups[k]||[]).push(x); });
+  const keys=Object.keys(groups).sort().reverse();
+  let html=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">ჩემი წილი</th></tr></thead><tbody>`;
+  keys.forEach(k=>{
+    const list=groups[k].sort((a,b)=>a.date<b.date?-1:1);
+    const g=list.reduce((a,x)=>a+x.price,0);
+    html+=`<tr class="grp"><td>${fmtMonth(k)} · ${list.length} მანქ.</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
+    list.forEach(x=>{ html+=carRow(x); });
+  });
+  html+=`</tbody></table>`; c.innerHTML=html;
+}
+function render(){ renderStats(); renderContent(); }
+
+document.getElementById('add').addEventListener('click', addCar);
+document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
+document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
+
+load();
+</script>
+</body></html>
