@@ -15,8 +15,11 @@
   html,body { -webkit-text-size-adjust:100%; }
   body { margin:0; padding:12px; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:#f4f5f7; color:#1c2333; max-width:820px; margin:0 auto; }
-  h1 { font-size:19px; margin:0 0 2px; }
-  .sub { color:#7a8194; font-size:12px; margin-bottom:6px; }
+  .topbar { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px; }
+  h1 { font-size:19px; margin:0; }
+  .langsw { display:flex; border:1px solid #d8dbe3; border-radius:9px; overflow:hidden; flex:0 0 auto; }
+  .langsw button { background:#fff; color:#7a8194; border:none; padding:5px 10px; font-size:12px; font-weight:700; cursor:pointer; }
+  .langsw button.active { background:#1c2333; color:#fff; }
   .cloud { font-size:11px; margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
   .gbtn { background:#fff; border:1px solid #d8dbe3; color:#1c2333; padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
   .gbtn:hover { background:#f0f1f4; }
@@ -82,38 +85,43 @@
 </style>
 </head><body>
 
-<h1>🚚 გადაზიდვის ტრეკერი</h1>
-<div class="sub">ჩაწერ ფასს და მაშინვე ითვლება. შენი წილი ავტომატურად.</div>
+<div class="topbar">
+  <h1>🚚 <span id="appTitle"></span></h1>
+  <div class="langsw">
+    <button id="langKa" onclick="setLang('ka')">GEO</button>
+    <button id="langEn" onclick="setLang('en')">ENG</button>
+  </div>
+</div>
 <div class="cloud" id="cloudStatus"></div>
 
 <div class="card">
   <div class="row">
-    <div class="f-price"><label>ფასი ($)</label><input id="price" type="number" inputmode="decimal" enterkeyhint="done" placeholder="მაგ. 500"/></div>
-    <div class="f-date"><label>თარიღი</label>
+    <div class="f-price"><label id="lblPrice"></label><input id="price" type="number" inputmode="decimal" enterkeyhint="done"/></div>
+    <div class="f-date"><label id="lblDate"></label>
       <div class="date-row">
-        <button class="daybtn" onclick="changeDate(-1)" title="წინა დღე">◀</button>
+        <button class="daybtn" id="dayPrev" onclick="changeDate(-1)">◀</button>
         <input id="date" type="date"/>
-        <button class="daybtn" onclick="changeDate(1)" title="შემდეგი დღე">▶</button>
+        <button class="daybtn" id="dayNext" onclick="changeDate(1)">▶</button>
       </div>
     </div>
-    <button class="add" id="add">დამატება</button>
+    <button class="add" id="add"></button>
   </div>
-  <div class="settings">ჩემი წილი: <input id="share" type="number" min="0" max="100" step="1"/> %</div>
+  <div class="settings"><span id="lblShare"></span> <input id="share" type="number" min="0" max="100" step="1"/> %</div>
 </div>
 
 <div class="cards" id="stats"></div>
 
 <div class="card" style="margin-top:6px;">
   <div class="tabs">
-    <button id="tab-week" class="active" onclick="setView('week')">კვირების მიხედვით</button>
-    <button id="tab-month" onclick="setView('month')">თვეების მიხედვით</button>
-    <button id="tab-all" onclick="setView('all')">ყველა</button>
+    <button id="tab-week" class="active" onclick="setView('week')"></button>
+    <button id="tab-month" onclick="setView('month')"></button>
+    <button id="tab-all" onclick="setView('all')"></button>
   </div>
   <div id="content"></div>
-  <button class="reset" onclick="resetAll()">ყველაფრის წაშლა</button>
+  <button class="reset" id="resetBtn" onclick="resetAll()"></button>
 </div>
 
-<div id="kbBar"><button id="kbAdd" class="kb-add">დამატება ↵</button></div>
+<div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
 
 <script>
 (function(){
@@ -135,6 +143,27 @@ const firebaseConfig = {
   appId: "1:237965493114:web:3cdadba88d127e77ea0cc3"
 };
 
+// ---- ენა / language ----
+let lang = 'ka';
+const T = {
+  ka:{ title:"გადაზიდვის ტრეკერი", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
+    myShare:"ჩემი წილი:", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
+    prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში",
+    thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",
+    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
+    del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა" },
+  en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
+    myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
+    prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month",
+    thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
+    navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
+    del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out" }
+};
+function t(k){ return (T[lang]&&T[lang][k])||k; }
+function loc(){ return lang==='en'?'en-US':'ka-GE'; }
+
 let cars = [];
 let settings = { share: 33 };
 let view = 'week';
@@ -153,14 +182,14 @@ const store = {
 };
 
 // ---- ღრუბელი + Google login ----
-let db=null, cloudUid=null, cloudEmail='', firstSnap=true, pushTimer=null, unsub=null;
+let db=null, cloudUid=null, cloudEmail='', isSignedIn=false, firstSnap=true, pushTimer=null, unsub=null;
 
-function renderAuthBar(signedIn){
+function renderAuthBar(){
   const el=document.getElementById('cloudStatus'); if(!el) return;
-  if(signedIn){
-    el.innerHTML='<span style="color:#2fa36b">☁️ სინქდება ყველა მოწყობილობაზე'+(cloudEmail?' · '+cloudEmail:'')+'</span> <span class="signout" onclick="signOutCloud()">გასვლა</span>';
+  if(isSignedIn){
+    el.innerHTML='<span style="color:#2fa36b">'+t('syncOn')+(cloudEmail?' · '+cloudEmail:'')+'</span> <span class="signout" onclick="signOutCloud()">'+t('signOut')+'</span>';
   } else {
-    el.innerHTML='<span style="color:#9aa0af">📴 მხოლოდ ამ მოწყობილობაზე ინახება.</span> <button class="gbtn" onclick="signInGoogle()">Google-ით სინქი</button>';
+    el.innerHTML='<span style="color:#9aa0af">'+t('syncOff')+'</span> <button class="gbtn" onclick="signInGoogle()">'+t('googleSync')+'</button>';
   }
 }
 function signInGoogle(){
@@ -169,7 +198,6 @@ function signInGoogle(){
   firebase.auth().signInWithPopup(provider).catch(err=>{
     const code=err&&err.code||'';
     if(code==='auth/popup-closed-by-user'||code==='auth/cancelled-popup-request') return;
-    // popup დაიბლოკა (ხშირად ტელეფონზე) -> redirect
     try{ firebase.auth().signInWithRedirect(provider); }catch(e){ console.warn(e); }
   });
 }
@@ -195,9 +223,7 @@ function subscribeCloud(){
         cars=d.cars; if(d.settings) settings=d.settings;
         store.set('cars',JSON.stringify(cars)); store.set('settings',JSON.stringify(settings));
         document.getElementById('share').value=settings.share; render();
-      } else {
-        pushCloud(); // ღრუბელი ცარიელია — ლოკალურ მონაცემს ავტვირთავ
-      }
+      } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) cars=d.cars;
       if(d.settings) settings=d.settings;
@@ -207,22 +233,16 @@ function subscribeCloud(){
   }, err=>{ console.warn('snapshot error', err); });
 }
 function initCloud(){
-  if(typeof firebase==='undefined'){ renderAuthBar(false); return; }
+  if(typeof firebase==='undefined'){ renderAuthBar(); return; }
   try{
     firebase.initializeApp(firebaseConfig);
     db=firebase.firestore();
     try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){}
     firebase.auth().getRedirectResult().catch(e=>console.warn('redirect result', e));
-  }catch(e){ db=null; renderAuthBar(false); return; }
+  }catch(e){ db=null; renderAuthBar(); return; }
   firebase.auth().onAuthStateChanged(user=>{
-    if(user){
-      cloudUid=user.uid; cloudEmail=user.email||user.displayName||'';
-      renderAuthBar(true);
-      subscribeCloud();
-    } else {
-      cloudUid=null; if(unsub){ unsub(); unsub=null; }
-      renderAuthBar(false);
-    }
+    if(user){ cloudUid=user.uid; cloudEmail=user.email||user.displayName||''; isSignedIn=true; renderAuthBar(); subscribeCloud(); }
+    else { cloudUid=null; isSignedIn=false; if(unsub){ unsub(); unsub=null; } renderAuthBar(); }
   });
 }
 
@@ -231,18 +251,43 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function mondayOf(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
-function fmtDay(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString('ka-GE',{weekday:'short',day:'numeric',month:'short'}); }
-function dm(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString('ka-GE',{day:'numeric',month:'short'}); }
+function fmtDay(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'short'}); }
+function dm(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
 function monthKey(s){ return (s||'').slice(0,7); }
-function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString('ka-GE',{month:'long',year:'numeric'}); }
+function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString(loc(),{month:'long',year:'numeric'}); }
 function shareOf(g){ return g*(settings.share/100); }
 
+function applyStaticLabels(){
+  document.documentElement.lang = lang;
+  document.getElementById('appTitle').textContent = t('title');
+  document.getElementById('lblPrice').textContent = t('price');
+  document.getElementById('price').placeholder = t('pricePh');
+  document.getElementById('lblDate').textContent = t('date');
+  document.getElementById('dayPrev').title = t('prevDay');
+  document.getElementById('dayNext').title = t('nextDay');
+  document.getElementById('add').textContent = t('add');
+  document.getElementById('lblShare').textContent = t('myShare');
+  document.getElementById('tab-week').textContent = t('byWeek');
+  document.getElementById('tab-month').textContent = t('byMonth');
+  document.getElementById('tab-all').textContent = t('all');
+  document.getElementById('resetBtn').textContent = t('clearAll');
+  document.getElementById('kbAdd').textContent = t('addEnter');
+  document.getElementById('langKa').classList.toggle('active', lang==='ka');
+  document.getElementById('langEn').classList.toggle('active', lang==='en');
+}
+function setLang(l){
+  lang=l; store.set('lang', l);
+  applyStaticLabels(); renderAuthBar(); render();
+}
+
 async function load(){
+  try{ const r=await store.get('lang'); if(r==='en'||r==='ka') lang=r; }catch(e){}
   try{ const r=await store.get('cars'); if(r) cars=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('settings'); if(r) settings=JSON.parse(r); }catch(e){}
   let changed=false;
   cars = cars.map(c=>{ if(!c.date){ c.date=c.deliveryDate||c.pickupDate||todayStr(); changed=true; } return c; })
              .filter(c=>valid(c.date));
+  applyStaticLabels();
   document.getElementById('share').value=settings.share;
   document.getElementById('date').value=todayStr();
   render();
@@ -264,25 +309,25 @@ function addCar(){
   saveCars(); render(); priceEl.focus();
 }
 function delCar(id){ cars=cars.filter(c=>c.id!==id); saveCars(); render(); }
-function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(t=>document.getElementById('tab-'+t).classList.toggle('active',t===v)); render(); }
+function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===v)); render(); }
 function navWeek(d){ weekPage=Math.max(0, weekPage+d); render(); }
-function resetAll(){ if(confirm('ნამდვილად წავშალო ყველა ჩანაწერი?')){ cars=[]; saveCars(); render(); } }
+function resetAll(){ if(confirm(t('confirmClear'))){ cars=[]; saveCars(); render(); } }
 
 function renderStats(){
-  const t=todayStr(), wk=mondayOf(t), lastWk=addDays(wk,-7), mk=monthKey(t), yr=t.slice(0,4);
+  const td=todayStr(), wk=mondayOf(td), lastWk=addDays(wk,-7), mk=monthKey(td), yr=td.slice(0,4);
   const filt=(fn)=>{ const arr=cars.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
   const data=[
-    ['ამ კვირაში', filt(c=>mondayOf(c.date)===wk)],
-    ['წინა კვირა', filt(c=>mondayOf(c.date)===lastWk)],
-    ['ამ თვეში', filt(c=>monthKey(c.date)===mk)],
-    ['წელს '+yr, filt(c=>c.date.slice(0,4)===yr)],
-    ['სულ', filt(()=>true)]
+    [t('thisWeek'), filt(c=>mondayOf(c.date)===wk)],
+    [t('lastWeek'), filt(c=>mondayOf(c.date)===lastWk)],
+    [t('thisMonth'), filt(c=>monthKey(c.date)===mk)],
+    [t('thisYear')+' '+yr, filt(c=>c.date.slice(0,4)===yr)],
+    [t('total'), filt(()=>true)]
   ];
   document.getElementById('stats').innerHTML=data.map(([l,o])=>`
-    <div class="stat"><div class="lbl">${l} — ჩემი წილი</div>
+    <div class="stat"><div class="lbl">${l} ${t('shareSuffix')}</div>
       <div class="share-main">${money(shareOf(o.g))}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${o.n} მანქანა</div>
+      <div class="cnt">${o.n} ${t('cars')}</div>
     </div>`).join('');
 }
 
@@ -303,18 +348,18 @@ function weekColumn(mon){
     ? days.map(d=>{
         const items=byDay[d];
         const dsum=items.reduce((a,x)=>a+x.price,0);
-        const chips=items.map(c=>`<span class="pchip">${money(c.price)}<button onclick="delCar('${c.id}')" title="წაშლა">✕</button></span>`).join('');
+        const chips=items.map(c=>`<span class="pchip">${money(c.price)}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
         const sum = items.length>1 ? `<span class="day-sum">= ${money(dsum)}</span>` : '';
         return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
       }).join('')
-    : `<div class="wk-empty">— ჩანაწერი არ არის —</div>`;
+    : `<div class="wk-empty">${t('noEntries')}</div>`;
   return `<div class="week-col">
     <div class="week-head">${dm(mon)} – ${dm(sun)} <span class="wk-yr">${mon.slice(0,4)}</span></div>
     <div class="week-body">${body}</div>
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b></div>
-      <div class="fshare">ჩემი წილი: ${money(shareOf(g))}</div>
-      <div class="wk-cnt">${list.length} მანქანა</div>
+      <div class="fshare">${t('shareFoot')} ${money(shareOf(g))}</div>
+      <div class="wk-cnt">${list.length} ${t('cars')}</div>
     </div>
   </div>`;
 }
@@ -324,33 +369,30 @@ function renderWeekView(){
   const older=addDays(newest,-7);
   const canNewer=weekPage>0;
   return `<div class="week-nav">
-      <button class="navbtn" onclick="navWeek(2)">◀ წინა</button>
-      <button class="navbtn" onclick="navWeek(-2)" ${canNewer?'':'disabled'}>შემდეგი ▶</button>
+      <button class="navbtn" onclick="navWeek(2)">${t('navPrev')}</button>
+      <button class="navbtn" onclick="navWeek(-2)" ${canNewer?'':'disabled'}>${t('navNext')}</button>
     </div>
     <div class="week-grid">${weekColumn(older)}${weekColumn(newest)}</div>`;
 }
 
-function carRow(c){
-  return `<tr><td style="padding-left:22px;color:#5a6172">${fmtDay(c.date)}</td><td class="num">${money(c.price)}</td><td class="num"><button class="del" onclick="delCar('${c.id}')">წაშლა</button></td></tr>`;
-}
 function renderContent(){
   const c=document.getElementById('content');
   if(view==='week'){ c.innerHTML=renderWeekView(); return; }
-  if(cars.length===0){ c.innerHTML='<div class="empty">ჯერ ჩანაწერი არ არის ⬆️</div>'; return; }
+  if(cars.length===0){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
   if(view==='all'){
     const all=[...cars].sort((a,b)=>a.date<b.date?1:-1);
-    c.innerHTML=`<table><thead><tr><th>დღე</th><th class="num">ფასი</th><th></th></tr></thead><tbody>${
-      all.map(x=>`<tr><td style="color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">წაშლა</button></td></tr>`).join('')}</tbody></table>`;
+    c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
+      all.map(x=>`<tr><td style="color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
     return;
   }
   const groups={}; cars.forEach(x=>{ const k=monthKey(x.date); (groups[k]=groups[k]||[]).push(x); });
   const keys=Object.keys(groups).sort().reverse();
-  let html=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">ჩემი წილი</th></tr></thead><tbody>`;
+  let html=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('shareFoot').replace(':','')}</th></tr></thead><tbody>`;
   keys.forEach(k=>{
     const list=groups[k].sort((a,b)=>a.date<b.date?-1:1);
     const g=list.reduce((a,x)=>a+x.price,0);
-    html+=`<tr class="grp"><td>${fmtMonth(k)} · ${list.length} მანქ.</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
-    list.forEach(x=>{ html+=carRow(x); });
+    html+=`<tr class="grp"><td>${fmtMonth(k)} · ${list.length} ${t('carsShort')}</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
+    list.forEach(x=>{ html+=`<tr><td style="padding-left:22px;color:#5a6172">${fmtDay(x.date)}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`; });
   });
   html+=`</tbody></table>`; c.innerHTML=html;
 }
