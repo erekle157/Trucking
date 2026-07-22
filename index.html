@@ -16,14 +16,14 @@
     --card:#fff; --shadow:rgba(0,0,0,.06); --border:#d8dbe3; --border-soft:#eef0f4; --row-line:#f2f3f6;
     --input-bg:#fafbfc; --accent:#2fa36b; --accent-dark:#268758; --chip:#eceef2; --chip-hover:#dfe2e8;
     --tab-active-bg:#1c2333; --tab-active-text:#fff; --head-bg:#fbf6ec; --pchip:#eef7f1; --del:#c04a4a;
-    --del-soft:#c8a2a2; --bar-bg:rgba(244,245,247,.98); color-scheme:light;
+    --del-soft:#c8a2a2; --bar-bg:rgba(244,245,247,.98); --cur-head:#dff2e8; --cur-bg:#f3fbf7; color-scheme:light;
   }
   :root[data-theme="dark"]{
     --bg:#14161a; --text:#e6e8ec; --muted:#9aa2b0; --muted2:#6f7686; --sub:#b7bcc6; --btn-text:#c2c7d0;
     --card:#1e2128; --shadow:rgba(0,0,0,.4); --border:#333844; --border-soft:#2a2f39; --row-line:#262a32;
     --input-bg:#262a32; --accent:#35b378; --accent-dark:#2a9463; --chip:#2a2f39; --chip-hover:#343a46;
     --tab-active-bg:#e6e8ec; --tab-active-text:#14161a; --head-bg:#2b2721; --pchip:#1f3328; --del:#e07a7a;
-    --del-soft:#8a5b5b; --bar-bg:rgba(20,22,26,.98); color-scheme:dark;
+    --del-soft:#8a5b5b; --bar-bg:rgba(20,22,26,.98); --cur-head:#223a2c; --cur-bg:#182420; color-scheme:dark;
   }
   * { box-sizing: border-box; }
   html,body { -webkit-text-size-adjust:100%; }
@@ -72,12 +72,16 @@
   .navbtn { background:var(--chip); color:var(--btn-text); padding:7px 10px; border:none; border-radius:9px; cursor:pointer; font-size:12px; font-weight:600; }
   .navbtn:hover { background:var(--chip-hover); }
   .navbtn:disabled { opacity:.4; cursor:default; }
-  .week-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .week-col { border:1px solid var(--border-soft); border-radius:11px; overflow:hidden; }
+  .week-grid { display:grid; grid-template-columns:2fr 3fr; gap:8px; }
+  .week-col { border:1px solid var(--border-soft); border-radius:11px; overflow:hidden; display:flex; flex-direction:column; }
+  .week-col.current { border-color:var(--accent); background:var(--cur-bg); }
+  .week-col.current .week-head { background:var(--cur-head); }
   .week-head { background:var(--head-bg); padding:7px 9px; font-weight:700; font-size:12px; }
   .wk-yr { color:var(--muted2); font-weight:500; font-size:11px; }
-  .week-body { padding:1px 0; }
-  .wk-empty { padding:14px 9px; color:var(--muted2); text-align:center; font-size:12px; }
+  .wk-num { color:var(--accent); }
+  .wk-range { color:var(--muted); font-weight:500; font-size:11px; }
+  .week-body { padding:1px 0; flex:1 1 auto; }
+  .wk-empty { color:var(--muted2); text-align:center; font-size:11px; white-space:nowrap; display:flex; align-items:center; justify-content:center; height:100%; min-height:60px; padding:0 6px; }
   .day-row { padding:6px 9px; border-bottom:1px solid var(--row-line); }
   .day-row:last-child { border-bottom:none; }
   .day-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
@@ -199,14 +203,14 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week" }
 };
 function t(k){ return (T[lang]&&T[lang][k])||k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -375,7 +379,7 @@ function addCar(){
 }
 function delCar(id){ pushHistory(); cars=cars.filter(c=>c.id!==id); saveCars(); render(); }
 function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===v)); render(); }
-function navWeek(d){ weekPage=Math.max(0, weekPage+d); render(); }
+function navWeek(d){ weekPage=Math.max(-8, weekPage+d); render(); }
 function resetAll(){ if(confirm(t('confirmClear'))){ cars=[]; saveCars(); render(); } }
 
 function renderStats(){
@@ -406,11 +410,39 @@ function anchorMon(){
   const dataMon=mondayOf(maxDate);
   return dataMon>todayMon?dataMon:todayMon;
 }
-function weekColumn(mon){
-  const list=cars.filter(c=>mondayOf(c.date)===mon);
-  const g=list.reduce((a,x)=>a+x.price,0);
-  const wmi=list.reduce((a,x)=>a+(x.miles||0),0);
+function weekNumber(mon){
+  if(!cars.length || !valid(mon)) return null;
+  const minDate=cars.reduce((m,c)=>c.date<m?c.date:m, cars[0].date);
+  const first=mondayOf(minDate);
+  const diff=Math.round((new Date(mon+'T00:00:00') - new Date(first+'T00:00:00'))/(7*86400000));
+  return diff+1;
+}
+function weekHead(mon){
   const sun=addDays(mon,6);
+  const wn=weekNumber(mon);
+  const wlabel=(wn&&wn>=1)?`<span class="wk-num">${t('weekWord')} ${wn}</span> · `:'';
+  return `<div class="week-head">${wlabel}<span class="wk-range">${dm(mon)} – ${dm(sun)} ${mon.slice(0,4)}</span></div>`;
+}
+function weekColumn(mon, collapsed){
+  const list=cars.filter(c=>mondayOf(c.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
+  const g=list.reduce((a,x)=>a+x.price,0);
+  const cur = (mon===mondayOf(todayStr())) ? ' current' : '';
+  const wmi=list.reduce((a,x)=>a+(x.miles||0),0);
+
+  if(collapsed){
+    const chips = list.length
+      ? `<div class="day-prices" style="flex-direction:row;flex-wrap:wrap">${list.map(c=>`<span class="pchip"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('')}</div>`
+      : `<div class="wk-empty">${t('noEntries')}</div>`;
+    return `<div class="week-col${cur}">${weekHead(mon)}
+      <div class="week-body" style="padding:8px 9px">${chips}</div>
+      <div class="week-foot">
+        <div>Gross: <b>${money(g)}</b></div>
+        <div class="fshare">${t('shareFoot')} ${money(shareOf(g))}</div>
+        <div class="wk-cnt">${list.length} ${t('cars')}</div>
+      </div>
+    </div>`;
+  }
+
   const byDay={}; list.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days=Object.keys(byDay).sort();
   const body = days.length
@@ -429,8 +461,7 @@ function weekColumn(mon){
         return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
       }).join('')
     : `<div class="wk-empty">${t('noEntries')}</div>`;
-  return `<div class="week-col">
-    <div class="week-head">${dm(mon)} – ${dm(sun)} <span class="wk-yr">${mon.slice(0,4)}</span></div>
+  return `<div class="week-col${cur}">${weekHead(mon)}
     <div class="week-body">${body}</div>
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b></div>
@@ -444,12 +475,12 @@ function renderWeekView(){
   const curMon=anchorMon();
   const newest=addDays(curMon,-7*weekPage);
   const older=addDays(newest,-7);
-  const canNewer=weekPage>0;
+  const canNewer=weekPage>-8;
   return `<div class="week-nav">
-      <button class="navbtn" onclick="navWeek(2)">${t('navPrev')}</button>
-      <button class="navbtn" onclick="navWeek(-2)" ${canNewer?'':'disabled'}>${t('navNext')}</button>
+      <button class="navbtn" onclick="navWeek(1)">${t('navPrev')}</button>
+      <button class="navbtn" onclick="navWeek(-1)" ${canNewer?'':'disabled'}>${t('navNext')}</button>
     </div>
-    <div class="week-grid">${weekColumn(older)}${weekColumn(newest)}</div>`;
+    <div class="week-grid">${weekColumn(older, true)}${weekColumn(newest, false)}</div>`;
 }
 
 function renderContent(){
