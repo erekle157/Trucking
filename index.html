@@ -79,11 +79,12 @@
   .day-row { padding:6px 9px; border-bottom:1px solid var(--row-line); }
   .day-row:last-child { border-bottom:none; }
   .day-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
-  .day-prices { display:flex; flex-wrap:wrap; gap:5px; align-items:center; }
-  .pchip { display:inline-flex; align-items:center; gap:5px; background:var(--pchip); color:var(--text); border-radius:7px; padding:2px 7px; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
-  .pchip button { background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:11px; padding:0; line-height:1; }
+  .day-prices { display:flex; flex-direction:column; gap:5px; align-items:stretch; }
+  .pchip { display:flex; align-items:center; gap:6px; background:var(--pchip); color:var(--text); border-radius:7px; padding:3px 8px; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .pc-txt { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pchip button { flex:0 0 auto; background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
   .pchip button:hover { color:var(--del); }
-  .day-sum { margin-left:auto; font-size:10px; color:var(--muted2); font-variant-numeric:tabular-nums; }
+  .day-sum { align-self:flex-end; font-size:10px; color:var(--muted2); font-variant-numeric:tabular-nums; }
   .week-foot { padding:7px 9px; border-top:2px solid var(--border-soft); font-size:12px; display:flex; flex-direction:column; gap:1px; }
   .week-foot .fshare { font-size:14px; color:var(--accent); font-weight:700; }
   .wk-dpm { color:var(--accent); font-size:11px; font-weight:600; }
@@ -292,6 +293,7 @@ function initCloud(){
 }
 
 function money(n){ return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function moneyc(n){ return Number.isInteger(n) ? '$'+(n||0).toLocaleString('en-US') : money(n); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function routeStates(r){ if(!r) return ''; const st=r.match(/\b[A-Z]{2}\b/g); if(st&&st.length>=2) return st[0]+' → '+st[st.length-1]; return r; }
 function dpmFmt(v){ return '$'+(v||0).toFixed(2); }
@@ -414,7 +416,7 @@ function weekColumn(mon){
         const dmi=items.reduce((a,x)=>a+(x.miles||0),0);
         const chips=items.map(c=>{
           const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
-          return `<span class="pchip">${money(c.price)}${meta?' · '+esc(meta):''}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
+          return `<span class="pchip"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
         }).join('');
         const parts=[];
         if(items.length>1) parts.push('= '+money(dsum));
