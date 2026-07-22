@@ -50,8 +50,10 @@
   .owner-col-head { font-size:10px; color:var(--muted2); text-transform:uppercase; letter-spacing:.3px; padding:6px 9px 2px; }
   .owner-col .exp-item { padding:5px 9px; font-size:12px; }
   .owner-col .exp-item span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
-  .cat-row { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
-  .cat-chip { background:var(--chip); color:var(--btn-text); border:1px solid transparent; border-radius:20px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; }
+  .mi-display { padding:9px 8px; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); font-size:15px; font-weight:700; text-align:center; color:var(--accent); }
+  .wk-catbreak { color:var(--muted2); font-size:10px; margin-top:2px; }
+  .cat-row { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; margin-bottom:8px; -webkit-overflow-scrolling:touch; }
+  .cat-chip { background:var(--chip); color:var(--btn-text); border:1px solid transparent; border-radius:20px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer; flex:0 0 auto; white-space:nowrap; }
   .cat-chip.active { background:var(--accent); color:#fff; }
   .cloud { font-size:11px; margin-bottom:12px; display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
   .gbtn { background:var(--card); border:1px solid var(--border); color:var(--text); padding:4px 10px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; }
@@ -159,11 +161,16 @@
     </div>
     <button class="add" id="add"></button>
   </div>
-  <div class="row" style="margin-top:8px;">
+  <div class="row" id="routeRow" style="margin-top:8px;">
     <div style="flex:1 1 60px;min-width:0"><label id="lblRoute"></label><input id="route" type="text"/></div>
     <div style="flex:0 0 70px"><label id="lblMiles"></label><input id="miles" type="number" inputmode="numeric"/></div>
     <button class="add" id="imgBtn" style="flex:0 0 auto;background:var(--chip);color:var(--btn-text)">📷</button>
     <input id="imgInput" type="file" accept="image/*" style="display:none"/>
+  </div>
+  <div class="row" id="mileageRow" style="margin-top:8px;display:none;">
+    <div style="flex:1 1 70px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="number" inputmode="numeric"/></div>
+    <div style="flex:1 1 70px;min-width:0"><label id="lblEndMi"></label><input id="ownEndMi" type="number" inputmode="numeric"/></div>
+    <div style="flex:1 1 70px;min-width:0"><label id="lblWeekMi"></label><div id="weekMiDisplay" class="mi-display">0</div></div>
   </div>
   <div class="settings" id="shareRow"><span id="lblShare"></span> <input id="share" type="number" min="0" max="100" step="1"/> %</div>
 </div>
@@ -239,16 +246,16 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage" }
 };
-function t(k){ return (T[lang]&&T[lang][k])||k; }
+function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
 
 let carsDriver = [];
@@ -261,6 +268,7 @@ let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
 let expenses = [];
+let weeklyMileage = {};
 const EXP_CATS = ['Fuel','DEF','Ez-pass','Maintenance','TruckWash','Other'];
 const hasStore = typeof window !== 'undefined' && window.storage;
 
@@ -301,7 +309,7 @@ function pushCloud(){
   if(!db || !cloudUid) return;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>{
-    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, updatedAt: Date.now() })
+    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, updatedAt: Date.now() })
       .catch(e=>console.warn('cloud write failed', e));
   }, 400);
 }
@@ -316,18 +324,22 @@ function subscribeCloud(){
       if(d && ((Array.isArray(d.cars)&&d.cars.length) || (Array.isArray(d.carsOwner)&&d.carsOwner.length) || (Array.isArray(d.expenses)&&d.expenses.length))){
         if(Array.isArray(d.cars)) carsDriver=d.cars; if(Array.isArray(d.carsOwner)) carsOwner=d.carsOwner;
         if(d.settings) settings=d.settings; if(Array.isArray(d.expenses)) expenses=d.expenses;
+        if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-        document.getElementById('share').value=settings.share; render();
+        store.set('weeklyMileage',JSON.stringify(weeklyMileage));
+        document.getElementById('share').value=settings.share; if(appMode==='owner') loadMileageInputs(); render();
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
       if(Array.isArray(d.carsOwner)) carsOwner=d.carsOwner;
       if(d.settings) settings=d.settings;
       if(Array.isArray(d.expenses)) expenses=d.expenses;
+      if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-      document.getElementById('share').value=settings.share; render();
+      store.set('weeklyMileage',JSON.stringify(weeklyMileage));
+      document.getElementById('share').value=settings.share; if(appMode==='owner') loadMileageInputs(); render();
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -355,8 +367,8 @@ function selDate(){ const el=document.getElementById('date'); return (el&&el.val
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function mondayOf(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
-function fmtDay(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'short'}); }
-function dm(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
+function fmtDay(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return d.toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'short'}); }
+function dm(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return d.toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
 function monthKey(s){ return (s||'').slice(0,7); }
 function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString(loc(),{month:'long',year:'numeric'}); }
 function shareOf(g){ return g*(settings.share/100); }
@@ -388,6 +400,9 @@ function applyStaticLabels(){
   document.getElementById('lblExpAmt').textContent = t('expAmt');
   document.getElementById('lblExpDate').textContent = t('date');
   document.getElementById('expAdd').textContent = t('addExp');
+  document.getElementById('lblStartMi').textContent = t('startMi');
+  document.getElementById('lblEndMi').textContent = t('endMi');
+  document.getElementById('lblWeekMi').textContent = t('weekMi');
 }
 function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); renderAuthBar(); render(); }
 
@@ -399,6 +414,7 @@ async function load(){
   try{ const r=await store.get('carsOwner'); if(r) carsOwner=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('settings'); if(r) settings=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('expenses'); if(r) expenses=JSON.parse(r); }catch(e){}
+  try{ const r=await store.get('weeklyMileage'); if(r) weeklyMileage=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('mode'); if(r==='owner'||r==='driver') appMode=r; }catch(e){}
   let changed=false;
   carsDriver = carsDriver.map(c=>{ if(!c.date){ c.date=c.deliveryDate||c.pickupDate||todayStr(); changed=true; } return c; })
@@ -426,7 +442,7 @@ function pushHistory(){ const k=appMode==='owner'?'owner':'driver'; undoStack[k]
 function undo(){ const k=appMode==='owner'?'owner':'driver'; if(!undoStack[k].length) return; redoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(undoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
 function redo(){ const k=appMode==='owner'?'owner':'driver'; if(!redoStack[k].length) return; undoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(redoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
 
-function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); render(); }
+function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); if(appMode==='owner') loadMileageInputs(); render(); }
 function addCar(){
   const priceEl=document.getElementById('price');
   const price=parseFloat(priceEl.value);
@@ -489,11 +505,11 @@ function weekNumber(mon, arr){
   const diff=Math.round((new Date(mon+'T00:00:00') - new Date(first+'T00:00:00'))/(7*86400000));
   return diff+1;
 }
-function weekHead(mon, arr){
+function weekHead(mon, arr, compact){
   const sun=addDays(mon,6);
   const wn=weekNumber(mon, arr);
   const wlabel=(wn&&wn>=1)?`<span class="wk-num">${t('weekWord')} ${wn}</span> · `:'';
-  return `<div class="week-head">${wlabel}<span class="wk-range">${dm(mon)} – ${dm(sun)} ${mon.slice(0,4)}</span></div>`;
+  return `<div class="week-head">${wlabel}<span class="wk-range">${dm(mon,compact)} – ${dm(sun,compact)} ${mon.slice(0,4)}</span></div>`;
 }
 function weekColumn(mon, collapsed){
   const list=carsDriver.filter(c=>mondayOf(c.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
@@ -601,7 +617,7 @@ document.getElementById('share').addEventListener('input', e=>{ const v=parseFlo
     }
   }, {passive:true});
 })();
-document.getElementById('date').addEventListener('change', ()=>render());
+document.getElementById('date').addEventListener('change', ()=>{ if(appMode==='owner') loadMileageInputs(); render(); });
 
 // --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
 let tessLoading=null;
@@ -650,12 +666,42 @@ function populateCats(){
 }
 function pickCat(c){ selectedCat=c; populateCats(); }
 function changeExpDate(delta){ const el=document.getElementById('expDate'); el.value=addDays(el.value||todayStr(),delta); }
+
+// --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
+function weeklyMiles(mon){
+  const r=weeklyMileage[mon];
+  if(!r || r.start==null || r.end==null) return 0;
+  return Math.max(0, r.end-r.start);
+}
+function updateWeekMiDisplay(){
+  const s=parseFloat(document.getElementById('ownStartMi').value); const e=parseFloat(document.getElementById('ownEndMi').value);
+  const wm = (!isNaN(s)&&!isNaN(e)) ? Math.max(0, e-s) : 0;
+  document.getElementById('weekMiDisplay').textContent = wm;
+}
+function loadMileageInputs(){
+  const k=mondayOf(selDate()); const r=weeklyMileage[k]||{};
+  document.getElementById('ownStartMi').value = (r.start!=null) ? r.start : '';
+  document.getElementById('ownEndMi').value = (r.end!=null) ? r.end : '';
+  updateWeekMiDisplay();
+}
+function saveMileageInputs(){
+  const k=mondayOf(selDate());
+  const sVal=document.getElementById('ownStartMi').value, eVal=document.getElementById('ownEndMi').value;
+  const s=sVal===''?null:parseFloat(sVal), e=eVal===''?null:parseFloat(eVal);
+  weeklyMileage[k] = { start:s, end:e };
+  store.set('weeklyMileage', JSON.stringify(weeklyMileage)); pushCloud();
+  updateWeekMiDisplay(); render();
+}
+
 function applyMode(){
   const owner = appMode==='owner';
   document.getElementById('modeDriver').classList.toggle('active', !owner);
   document.getElementById('modeOwner').classList.toggle('active', owner);
   document.getElementById('expCard').style.display = owner ? '' : 'none';
   document.getElementById('shareRow').style.display = owner ? 'none' : '';
+  document.getElementById('routeRow').style.display = owner ? 'none' : '';
+  document.getElementById('mileageRow').style.display = owner ? '' : 'none';
+  if(owner) loadMileageInputs();
 }
 function setMode(m){ appMode=m; weekPage=0; store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
 function addExpense(){
@@ -684,7 +730,7 @@ function ownerRenderStats(){
     card(t('total'), ()=>true)
   ];
   document.getElementById('stats').innerHTML=data.map(o=>`
-    <div class="stat"><div class="lbl">${o.l} — ${t('net')}</div>
+    <div class="stat"><div class="lbl">${o.l}</div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${t('totalExp')}: ${money(o.e)}</div>
@@ -694,7 +740,7 @@ function ownerWeekColumn(mon, collapsed){
   const loads=carsOwner.filter(c=>mondayOf(c.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
   const exps=expenses.filter(e=>mondayOf(e.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
   const g=loads.reduce((a,x)=>a+x.price,0);
-  const wmi=loads.reduce((a,x)=>a+(x.miles||0),0);
+  const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
   const net=g-eTotal;
   const cur=(mon===mondayOf(selDate()))?' current':'';
@@ -705,24 +751,28 @@ function ownerWeekColumn(mon, collapsed){
     const loadsHtml = loads.length
       ? loads.map(c=>{
           const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
-          return `<div class="exp-item"><span>${fmtDay(c.date)}${meta?' · '+esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
+          return `<div class="exp-item"><span>${fmtDay(c.date,true)}${meta?' · '+esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
         }).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
     const expHtml = exps.length
-      ? exps.map(e=>`<div class="exp-item"><span>${fmtDay(e.date)} · ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
+      ? exps.map(e=>`<div class="exp-item"><span>${fmtDay(e.date,true)} · ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
     body = `<div class="owner-split">
       <div class="owner-col"><div class="owner-col-head">${t('priceCol')}</div>${loadsHtml}</div>
       <div class="owner-col"><div class="owner-col-head">${t('totalExp')}</div>${expHtml}</div>
     </div>`;
   }
-  return `<div class="week-col${cur}">${weekHead(mon, carsOwner)}
+  const byCat={}; exps.forEach(e=>{ byCat[e.cat]=(byCat[e.cat]||0)+e.amount; });
+  const catKeys=Object.keys(byCat);
+  const catBreak = catKeys.length ? `<div class="wk-catbreak">${catKeys.map(k=>k+' −'+moneyc(byCat[k])).join(' · ')}</div>` : '';
+  return `<div class="week-col${cur}">${weekHead(mon, carsOwner, true)}
     <div class="week-body">${body}</div>
     <div class="week-foot">
-      <div>Gross: <b>${money(g)}</b></div>
+      <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
+      ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
-      ${wmi>0?`<div class="wk-dpm">$/m: ${dpmFmt(net/wmi)} · ${wmi} mi</div>`:''}
+      ${wmi>0?`<div class="wk-dpm">${t('weekMiLbl')}: ${wmi} mi</div>`:''}
       <div class="wk-cnt">${loads.length} ${t('cars')} · ${exps.length} ${t('expTitle')}</div>
     </div>
   </div>`;
@@ -761,6 +811,10 @@ function ownerRenderContent(){
 
 document.getElementById('expAdd').addEventListener('click', addExpense);
 document.getElementById('expAmt').addEventListener('keydown', e=>{ if(e.key==='Enter') addExpense(); });
+document.getElementById('ownStartMi').addEventListener('input', updateWeekMiDisplay);
+document.getElementById('ownEndMi').addEventListener('input', updateWeekMiDisplay);
+document.getElementById('ownStartMi').addEventListener('change', saveMileageInputs);
+document.getElementById('ownEndMi').addEventListener('change', saveMileageInputs);
 
 load();
 </script>
