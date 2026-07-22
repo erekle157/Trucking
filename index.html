@@ -303,6 +303,7 @@ function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').repla
 function routeStates(r){ if(!r) return ''; const st=r.match(/\b[A-Z]{2}\b/g); if(st&&st.length>=2) return st[0]+' → '+st[st.length-1]; return r; }
 function dpmFmt(v){ return '$'+(v||0).toFixed(2); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
+function selDate(){ const el=document.getElementById('date'); return (el&&el.value)||todayStr(); }
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function mondayOf(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
@@ -363,7 +364,7 @@ function pushHistory(){ undoStack.push(JSON.stringify(cars)); if(undoStack.lengt
 function undo(){ if(!undoStack.length) return; redoStack.push(JSON.stringify(cars)); cars=JSON.parse(undoStack.pop()); saveCars(); render(); updateUndoRedo(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(JSON.stringify(cars)); cars=JSON.parse(redoStack.pop()); saveCars(); render(); updateUndoRedo(); }
 
-function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); }
+function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); render(); }
 function addCar(){
   const priceEl=document.getElementById('price');
   const price=parseFloat(priceEl.value);
@@ -426,15 +427,20 @@ function weekHead(mon){
 function weekColumn(mon, collapsed){
   const list=cars.filter(c=>mondayOf(c.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
   const g=list.reduce((a,x)=>a+x.price,0);
-  const cur = (mon===mondayOf(todayStr())) ? ' current' : '';
+  const cur = (mon===mondayOf(selDate())) ? ' current' : '';
   const wmi=list.reduce((a,x)=>a+(x.miles||0),0);
 
   if(collapsed){
-    const chips = list.length
-      ? `<div class="day-prices" style="flex-direction:row;flex-wrap:wrap">${list.map(c=>`<span class="pchip"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('')}</div>`
+    const byDayC={}; list.forEach(c=>{ (byDayC[c.date]=byDayC[c.date]||[]).push(c); });
+    const daysC=Object.keys(byDayC).sort();
+    const bodyC = daysC.length
+      ? daysC.map(d=>{
+          const chips=byDayC[d].map(c=>`<span class="pchip"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+          return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}</div></div>`;
+        }).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
     return `<div class="week-col${cur}">${weekHead(mon)}
-      <div class="week-body" style="padding:8px 9px">${chips}</div>
+      <div class="week-body">${bodyC}</div>
       <div class="week-foot">
         <div>Gross: <b>${money(g)}</b></div>
         <div class="fshare">${t('shareFoot')} ${money(shareOf(g))}</div>
@@ -509,6 +515,7 @@ function render(){ renderStats(); renderContent(); }
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
+document.getElementById('date').addEventListener('change', ()=>render());
 
 // --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
 let tessLoading=null;
