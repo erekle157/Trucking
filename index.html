@@ -44,6 +44,8 @@
   .row { display:flex; gap:8px; flex-wrap:nowrap; align-items:flex-end; }
   label { display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
   input { width:100%; min-width:0; padding:9px 10px; border:1px solid var(--border); border-radius:9px; font-size:16px; background:var(--input-bg); color:var(--text); }
+  input[type=number] { -moz-appearance:textfield; appearance:textfield; }
+  input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance:none; margin:0; }
   input:focus { outline:none; border-color:var(--accent); background:var(--card); }
   .f-price { flex:1 1 60px; } .f-date { flex:2 1 120px; }
   .date-row { display:flex; gap:6px; align-items:stretch; }
@@ -53,9 +55,9 @@
   button.add { padding:9px 14px; border:none; border-radius:9px; font-size:15px; font-weight:600; cursor:pointer; background:var(--accent); color:#fff; flex:0 0 auto; white-space:nowrap; }
   button.add:hover { background:var(--accent-dark); }
   .settings { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); margin-top:10px; }
-  .settings input { width:64px; }
+  .settings input { width:34px; padding:7px 4px; text-align:center; }
   .cards { display:flex; gap:8px; overflow-x:auto; padding-bottom:6px; margin-bottom:8px; }
-  .stat { flex:0 0 150px; background:var(--card); border-radius:11px; padding:9px 11px; box-shadow:0 1px 3px var(--shadow); }
+  .stat { flex:0 0 calc((100% - 16px) / 3); background:var(--card); border-radius:11px; padding:9px 11px; box-shadow:0 1px 3px var(--shadow); }
   .stat .lbl { font-size:11px; color:var(--muted); }
   .stat .share-main { font-size:17px; font-weight:800; color:var(--accent); margin-top:2px; }
   .stat .gross-sub { font-size:11px; color:var(--muted); margin-top:2px; }
@@ -194,18 +196,17 @@ let lang = 'ka';
 const T = {
   ka:{ title:"გადაზიდვის ტრეკერი", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
     myShare:"ჩემი წილი:", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
-    prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში",
-    thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",
-    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
+    prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
+    thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
-    prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month",
+    prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"" }
 };
 function t(k){ return (T[lang]&&T[lang][k])||k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -378,17 +379,20 @@ function navWeek(d){ weekPage=Math.max(0, weekPage+d); render(); }
 function resetAll(){ if(confirm(t('confirmClear'))){ cars=[]; saveCars(); render(); } }
 
 function renderStats(){
-  const td=todayStr(), wk=mondayOf(td), lastWk=addDays(wk,-7), mk=monthKey(td), yr=td.slice(0,4);
+  const td=todayStr(), wk=mondayOf(td), lastWk=addDays(wk,-7), mk=monthKey(td), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
+  const prevMk=(()=>{ const d=new Date(td+'T00:00:00'); d.setDate(1); d.setDate(0); return d.toISOString().slice(0,7); })();
   const filt=(fn)=>{ const arr=cars.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
   const data=[
     [t('thisWeek'), filt(c=>mondayOf(c.date)===wk)],
     [t('lastWeek'), filt(c=>mondayOf(c.date)===lastWk)],
     [t('thisMonth'), filt(c=>monthKey(c.date)===mk)],
-    [t('thisYear')+' '+yr, filt(c=>c.date.slice(0,4)===yr)],
+    [t('lastMonth'), filt(c=>monthKey(c.date)===prevMk)],
+    [(yr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===yr)],
+    [(prevYr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===prevYr)],
     [t('total'), filt(()=>true)]
   ];
   document.getElementById('stats').innerHTML=data.map(([l,o])=>`
-    <div class="stat"><div class="lbl">${l} ${t('shareSuffix')}</div>
+    <div class="stat"><div class="lbl">${l}</div>
       <div class="share-main">${money(shareOf(o.g))}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${o.n} ${t('cars')}</div>
