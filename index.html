@@ -86,6 +86,7 @@
   .day-sum { margin-left:auto; font-size:10px; color:var(--muted2); font-variant-numeric:tabular-nums; }
   .week-foot { padding:7px 9px; border-top:2px solid var(--border-soft); font-size:12px; display:flex; flex-direction:column; gap:1px; }
   .week-foot .fshare { font-size:14px; color:var(--accent); font-weight:700; }
+  .wk-dpm { color:var(--accent); font-size:11px; font-weight:600; }
   .wk-cnt { color:var(--muted2); font-size:10px; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
   th, td { text-align:left; padding:8px; border-bottom:1px solid var(--border-soft); }
@@ -132,6 +133,7 @@
   </div>
   <div class="row" style="margin-top:8px;">
     <div style="flex:1 1 auto"><label id="lblRoute"></label><input id="route" type="text"/></div>
+    <div style="flex:0 0 84px"><label id="lblMiles"></label><input id="miles" type="number" inputmode="numeric"/></div>
     <button class="add" id="imgBtn" style="flex:0 0 auto;background:var(--chip);color:var(--btn-text)">📷</button>
     <input id="imgInput" type="file" accept="image/*" style="display:none"/>
   </div>
@@ -195,14 +197,14 @@ const T = {
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",
     navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796" }
 };
 function t(k){ return (T[lang]&&T[lang][k])||k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -291,6 +293,8 @@ function initCloud(){
 
 function money(n){ return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function routeStates(r){ if(!r) return ''; const st=r.match(/\b[A-Z]{2}\b/g); if(st&&st.length>=2) return st[0]+' → '+st[st.length-1]; return r; }
+function dpmFmt(v){ return '$'+(v||0).toFixed(2); }
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
@@ -308,6 +312,8 @@ function applyStaticLabels(){
   document.getElementById('price').placeholder = t('pricePh');
   document.getElementById('lblRoute').textContent = t('route');
   document.getElementById('route').placeholder = t('routePh');
+  document.getElementById('lblMiles').textContent = t('milesLbl');
+  document.getElementById('miles').placeholder = t('milesPh');
   document.getElementById('lblDate').textContent = t('date');
   document.getElementById('dayPrev').title = t('prevDay');
   document.getElementById('dayNext').title = t('nextDay');
@@ -357,9 +363,10 @@ function addCar(){
   if(!price||price<=0){ priceEl.focus(); return; }
   const date=document.getElementById('date').value||todayStr();
   const route=document.getElementById('route').value.trim();
+  const miles=parseFloat(document.getElementById('miles').value)||0;
   pushHistory();
-  cars.push({ id:Date.now()+''+Math.random(), price, date, route });
-  priceEl.value=''; document.getElementById('route').value='';
+  cars.push({ id:Date.now()+''+Math.random(), price, date, route, miles });
+  priceEl.value=''; document.getElementById('route').value=''; document.getElementById('miles').value='';
   weekPage=0;
   saveCars(); render(); priceEl.focus();
 }
@@ -396,6 +403,7 @@ function anchorMon(){
 function weekColumn(mon){
   const list=cars.filter(c=>mondayOf(c.date)===mon);
   const g=list.reduce((a,x)=>a+x.price,0);
+  const wmi=list.reduce((a,x)=>a+(x.miles||0),0);
   const sun=addDays(mon,6);
   const byDay={}; list.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days=Object.keys(byDay).sort();
@@ -403,8 +411,15 @@ function weekColumn(mon){
     ? days.map(d=>{
         const items=byDay[d];
         const dsum=items.reduce((a,x)=>a+x.price,0);
-        const chips=items.map(c=>`<span class="pchip">${money(c.price)}${c.route?' · '+esc(c.route):''}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
-        const sum = items.length>1 ? `<span class="day-sum">= ${money(dsum)}</span>` : '';
+        const dmi=items.reduce((a,x)=>a+(x.miles||0),0);
+        const chips=items.map(c=>{
+          const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
+          return `<span class="pchip">${money(c.price)}${meta?' · '+esc(meta):''}<button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
+        }).join('');
+        const parts=[];
+        if(items.length>1) parts.push('= '+money(dsum));
+        if(dmi>0) parts.push('$/m '+dpmFmt(dsum/dmi));
+        const sum = parts.length ? `<span class="day-sum">${parts.join(' · ')}</span>` : '';
         return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
       }).join('')
     : `<div class="wk-empty">${t('noEntries')}</div>`;
@@ -414,6 +429,7 @@ function weekColumn(mon){
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b></div>
       <div class="fshare">${t('shareFoot')} ${money(shareOf(g))}</div>
+      ${wmi>0?`<div class="wk-dpm">$/m: ${dpmFmt(g/wmi)} · ${wmi} mi</div>`:''}
       <div class="wk-cnt">${list.length} ${t('cars')}</div>
     </div>
   </div>`;
@@ -472,6 +488,8 @@ function parseOCR(text){
   const cs=text.match(/[A-Za-z][A-Za-z .'\-]{1,22},\s*[A-Z]{2}(?![A-Za-z])/g);
   if(cs&&cs.length>=2){ document.getElementById('route').value=cs[0].trim()+' → '+cs[cs.length-1].trim(); }
   else { const ft=text.match(/from\s+(.+?)\s+to\s+([^\n]+)/i); if(ft) document.getElementById('route').value=ft[1].trim()+' → '+ft[2].trim(); }
+  const mi=text.match(/(\d[\d,]{0,5})\s*mi(?:les)?\b/i);
+  if(mi){ const v=parseFloat(mi[1].replace(/,/g,'')); if(v>0) document.getElementById('miles').value=v; }
   document.getElementById('price').focus();
 }
 async function handleImage(file){
