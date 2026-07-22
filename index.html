@@ -15,14 +15,14 @@
     --bg:#f4f5f7; --text:#1c2333; --muted:#7a8194; --muted2:#9aa0af; --sub:#5a6172; --btn-text:#4a5163;
     --card:#fff; --shadow:rgba(0,0,0,.06); --border:#d8dbe3; --border-soft:#eef0f4; --row-line:#f2f3f6;
     --input-bg:#fafbfc; --accent:#2fa36b; --accent-dark:#268758; --chip:#eceef2; --chip-hover:#dfe2e8;
-    --tab-active-bg:#1c2333; --tab-active-text:#fff; --head-bg:#fbf6ec; --pchip:#eef7f1; --del:#c04a4a;
+    --tab-active-bg:#1c2333; --tab-active-text:#fff; --head-bg:#fbf6ec; --pchip:#eef7f1; --pchip-neg:#fbeaea; --del:#c04a4a;
     --del-soft:#c8a2a2; --bar-bg:rgba(244,245,247,.98); --cur-head:#dff2e8; --cur-bg:#f3fbf7; color-scheme:light;
   }
   :root[data-theme="dark"]{
     --bg:#14161a; --text:#e6e8ec; --muted:#9aa2b0; --muted2:#6f7686; --sub:#b7bcc6; --btn-text:#c2c7d0;
     --card:#1e2128; --shadow:rgba(0,0,0,.4); --border:#333844; --border-soft:#2a2f39; --row-line:#262a32;
     --input-bg:#262a32; --accent:#35b378; --accent-dark:#2a9463; --chip:#2a2f39; --chip-hover:#343a46;
-    --tab-active-bg:#e6e8ec; --tab-active-text:#14161a; --head-bg:#2b2721; --pchip:#1f3328; --del:#e07a7a;
+    --tab-active-bg:#e6e8ec; --tab-active-text:#14161a; --head-bg:#2b2721; --pchip:#1f3328; --pchip-neg:#3a2323; --del:#e07a7a;
     --del-soft:#8a5b5b; --bar-bg:rgba(20,22,26,.98); --cur-head:#223a2c; --cur-bg:#182420; color-scheme:dark;
   }
   * { box-sizing: border-box; }
@@ -46,12 +46,16 @@
   .exp-item { display:flex; align-items:center; gap:6px; padding:6px 9px; border-bottom:1px solid var(--row-line); font-size:13px; color:var(--sub); }
   .exp-item:last-child { border-bottom:none; }
   .exp-item .exp-amt { margin-left:auto; color:var(--del); font-weight:600; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .owner-split { display:flex; }
-  .owner-col { flex:1 1 50%; min-width:0; }
-  .owner-col:first-child { border-right:1px solid var(--row-line); }
-  .owner-col-head { font-size:10px; color:var(--muted2); text-transform:uppercase; letter-spacing:.3px; padding:6px 9px 2px; }
-  .owner-col .exp-item { padding:5px 9px; font-size:12px; }
-  .owner-col .exp-item span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .owner-split-head { display:flex; gap:8px; padding:2px 9px 4px; }
+  .owner-split-head .day-content-split { flex:1; display:flex; gap:6px; margin-left:34px; }
+  .owner-col-head { flex:1; font-size:10px; color:var(--muted2); text-transform:uppercase; letter-spacing:.3px; }
+  .day-row-owner { display:flex; gap:6px; padding:6px 9px; border-bottom:1px solid var(--row-line); align-items:flex-start; }
+  .day-row-owner:last-child { border-bottom:none; }
+  .day-row-owner .day-label { flex:0 0 30px; font-size:11px; color:var(--muted); padding-top:5px; }
+  .day-content-split { flex:1; display:flex; gap:6px; min-width:0; }
+  .day-content-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+  .day-content-col .exp-item { padding:5px 8px; font-size:12px; }
+  .day-content-col .exp-item span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
   .mi-display { padding:9px 8px; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); font-size:15px; font-weight:700; text-align:center; color:var(--accent); }
   .wk-catbreak { color:var(--muted2); font-size:10px; margin-top:2px; }
   .cat-row { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; margin-bottom:8px; -webkit-overflow-scrolling:touch; }
@@ -107,7 +111,15 @@
   .day-row:last-child { border-bottom:none; }
   .day-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .day-prices { display:flex; flex-direction:column; gap:5px; align-items:stretch; }
+  .day-prices.row-wrap { flex-direction:row; flex-wrap:wrap; align-items:center; }
+  .day-prices.row-wrap .pchip { flex:0 0 auto; }
+  .day-prices.split-lr { flex-direction:row; align-items:flex-start; gap:6px; }
+  .day-prices.split-lr .lr-col { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
+  .day-prices.split-lr .pchip { flex:0 0 auto; }
+  .day-prices.split-lr .pc-txt { overflow:visible; text-overflow:clip; }
   .pchip { display:flex; align-items:center; gap:6px; background:var(--pchip); color:var(--text); border-radius:7px; padding:3px 8px; font-size:12px; font-weight:600; font-variant-numeric:tabular-nums; }
+  .pchip.pos { background:var(--pchip); color:var(--accent); }
+  .pchip.neg { background:var(--pchip-neg); color:var(--del); }
   .pc-txt { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pchip button { flex:0 0 auto; background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
   .pchip button:hover { color:var(--del); }
@@ -373,7 +385,10 @@ function selDate(){ const el=document.getElementById('date'); return (el&&el.val
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
 function mondayOf(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); return d.toISOString().slice(0,10); }
-function fmtDay(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return d.toLocaleDateString(loc(),{weekday:'short',day:'numeric',month:'short'}); }
+const WD_KA = ['კვ','ორშ','სამ','ოთხ','ხუთ','პარ','შაბ'];
+const WD_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+function weekdayShort(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); return (lang==='ka'?WD_KA:WD_EN)[d.getDay()]; }
+function fmtDay(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact==='weekday') return weekdayShort(s); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return weekdayShort(s)+', '+d.toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
 function dm(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return d.toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
 function monthKey(s){ return (s||'').slice(0,7); }
 function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString(loc(),{month:'long',year:'numeric'}); }
@@ -450,7 +465,8 @@ function pushHistory(){ const k=appMode==='owner'?'owner':'driver'; undoStack[k]
 function undo(){ const k=appMode==='owner'?'owner':'driver'; if(!undoStack[k].length) return; redoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(undoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
 function redo(){ const k=appMode==='owner'?'owner':'driver'; if(!redoStack[k].length) return; undoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(redoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
 
-function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); if(appMode==='owner') loadMileageInputs(); render(); }
+function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
+function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value) eEl.value=dEl.value; }
 function addCar(){
   const priceEl=document.getElementById('price');
   const price=parseFloat(priceEl.value);
@@ -466,7 +482,14 @@ function addCar(){
 }
 function delCar(id){ pushHistory(); setActiveCars(activeCars().filter(c=>c.id!==id)); saveActiveCars(); render(); }
 function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===v)); render(); }
-function navWeek(d){ weekPage=Math.max(-8, weekPage+d); render(); }
+function navWeek(d){
+  weekPage=Math.max(-8, weekPage+d);
+  const dEl=document.getElementById('date');
+  if(dEl && dEl.value) dEl.value=addDays(dEl.value, -7*d);
+  syncExpDate();
+  if(appMode==='owner') loadMileageInputs();
+  render();
+}
 function goToday(){
   const anchor=anchorMon(), todayMon=mondayOf(todayStr());
   const wp=Math.round((new Date(anchor+'T00:00:00')-new Date(todayMon+'T00:00:00'))/(7*86400000));
@@ -477,8 +500,9 @@ function goToday(){
 function resetAll(){ if(confirm(t('confirmClear'))){ setActiveCars([]); saveActiveCars(); render(); } }
 
 function renderStats(){
-  const td=todayStr(), wk=mondayOf(td), lastWk=addDays(wk,-7), mk=monthKey(td), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
-  const prevMk=(()=>{ const d=new Date(td+'T00:00:00'); d.setDate(1); d.setDate(0); return d.toISOString().slice(0,7); })();
+  const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
+  const wk=anchorMonFor(carsDriver), lastWk=addDays(wk,-7);
+  const mk=anchorMonthFor(carsDriver), prevMk=prevMonthKey(mk);
   const filt=(fn)=>{ const arr=carsDriver.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
   const data=[
     [t('thisWeek'), filt(c=>mondayOf(c.date)===wk)],
@@ -505,6 +529,18 @@ function anchorMonFor(arr){
   return dataMon>todayMon?dataMon:todayMon;
 }
 function anchorMon(){ return anchorMonFor(activeCars()); }
+function anchorMonthFor(arr){
+  const todayMk=monthKey(todayStr());
+  if(!arr.length) return todayMk;
+  const maxDate=arr.reduce((m,c)=>c.date>m?c.date:m, arr[0].date);
+  const dataMk=monthKey(maxDate);
+  return dataMk>todayMk?dataMk:todayMk;
+}
+function prevMonthKey(mk){
+  const parts=mk.split('-'); const y=parseInt(parts[0]), m=parseInt(parts[1]);
+  const d=new Date(y, m-2, 1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
 function weekNumber(mon, arr){
   arr = arr || activeCars();
   if(!arr.length || !valid(mon)) return null;
@@ -527,14 +563,13 @@ function weekColumn(mon, collapsed){
 
   if(collapsed){
     const byDayC={}; list.forEach(c=>{ (byDayC[c.date]=byDayC[c.date]||[]).push(c); });
-    const daysC=Object.keys(byDayC).sort();
-    const bodyC = daysC.length
-      ? daysC.map(d=>{
-          const chips=byDayC[d].map(c=>`<span class="pchip"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
-          return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}</div></div>`;
-        }).join('')
-      : `<div class="wk-empty">${t('noEntries')}</div>`;
-    return `<div class="week-col${cur}">${weekHead(mon, carsDriver)}
+    const daysC=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
+    const bodyC = daysC.map(d=>{
+        const items=byDayC[d]||[];
+        const chips=items.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+        return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices">${chips}</div></div>`;
+      }).join('');
+    return `<div class="week-col${cur}">${weekHead(mon, carsDriver, true)}
       <div class="week-body">${bodyC}</div>
       <div class="week-foot">
         <div>Gross: <b>${money(g)}</b></div>
@@ -545,24 +580,22 @@ function weekColumn(mon, collapsed){
   }
 
   const byDay={}; list.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
-  const days=Object.keys(byDay).sort();
-  const body = days.length
-    ? days.map(d=>{
-        const items=byDay[d];
+  const days=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
+  const body = days.map(d=>{
+        const items=byDay[d]||[];
         const dsum=items.reduce((a,x)=>a+x.price,0);
         const dmi=items.reduce((a,x)=>a+(x.miles||0),0);
         const chips=items.map(c=>{
           const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
-          return `<span class="pchip"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
+          return `<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
         }).join('');
         const parts=[];
         if(items.length>1) parts.push('= '+money(dsum));
         if(dmi>0) parts.push('$/m '+dpmFmt(dsum/dmi));
         const sum = parts.length ? `<span class="day-sum">${parts.join(' · ')}</span>` : '';
-        return `<div class="day-row"><div class="day-label">${fmtDay(d)}</div><div class="day-prices">${chips}${sum}</div></div>`;
-      }).join('')
-    : `<div class="wk-empty">${t('noEntries')}</div>`;
-  return `<div class="week-col${cur}">${weekHead(mon, carsDriver)}
+        return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices">${chips}${sum}</div></div>`;
+      }).join('');
+  return `<div class="week-col${cur}">${weekHead(mon, carsDriver, true)}
     <div class="week-body">${body}</div>
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b></div>
@@ -625,7 +658,7 @@ document.getElementById('share').addEventListener('input', e=>{ const v=parseFlo
     }
   }, {passive:true});
 })();
-document.getElementById('date').addEventListener('change', ()=>{ if(appMode==='owner') loadMileageInputs(); render(); });
+document.getElementById('date').addEventListener('change', ()=>{ syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); });
 
 // --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
 let tessLoading=null;
@@ -723,8 +756,9 @@ function addExpense(){
 function delExpense(id){ expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
 
 function ownerRenderStats(){
-  const td=todayStr(), wk=mondayOf(td), lastWk=addDays(wk,-7), mk=monthKey(td), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
-  const prevMk=(()=>{ const d=new Date(td+'T00:00:00'); d.setDate(1); d.setDate(0); return d.toISOString().slice(0,7); })();
+  const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
+  const wk=anchorMonFor(carsOwner), lastWk=addDays(wk,-7);
+  const mk=anchorMonthFor([...carsOwner, ...expenses]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
   const esum=fn=>expenses.filter(fn).reduce((a,x)=>a+x.amount,0);
   const card=(l,fn)=>{ const g=gsum(fn), e=esum(fn); return {l,g,e,n:g-e}; };
@@ -754,21 +788,41 @@ function ownerWeekColumn(mon, collapsed){
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
-    body = `<div class="wk-empty">${money(g)} − ${money(eTotal)}</div>`;
-  } else {
-    const loadsHtml = loads.length
-      ? loads.map(c=>{
-          const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
-          return `<div class="exp-item"><span>${fmtDay(c.date,true)}${meta?' · '+esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
+    const dateSet=new Set([...loads.map(c=>c.date), ...exps.map(e=>e.date)]);
+    const cDates=Array.from(dateSet).sort();
+    body = cDates.length
+      ? cDates.map(d=>{
+          const dl=loads.filter(c=>c.date===d), de=exps.filter(e=>e.date===d);
+          const posChips=dl.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+          const negChips=de.map(e=>`<span class="pchip neg"><span class="pc-txt">−${moneyc(e.amount)}</span><button onclick="delExpense('${e.id}')" title="${t('del')}">✕</button></span>`).join('');
+          return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices split-lr"><div class="lr-col">${posChips}</div><div class="lr-col">${negChips}</div></div></div>`;
         }).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
-    const expHtml = exps.length
-      ? exps.map(e=>`<div class="exp-item"><span>${fmtDay(e.date,true)} · ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
-      : `<div class="wk-empty">${t('noEntries')}</div>`;
-    body = `<div class="owner-split">
-      <div class="owner-col"><div class="owner-col-head">${t('priceCol')}</div>${loadsHtml}</div>
-      <div class="owner-col"><div class="owner-col-head">${t('totalExp')}</div>${expHtml}</div>
-    </div>`;
+  } else {
+    const byDate={};
+    loads.forEach(c=>{ (byDate[c.date]=byDate[c.date]||{loads:[],exps:[]}).loads.push(c); });
+    exps.forEach(e=>{ (byDate[e.date]=byDate[e.date]||{loads:[],exps:[]}).exps.push(e); });
+    const dates=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
+    const rows = dates.map(d=>{
+      const rec=byDate[d]||{loads:[],exps:[]};
+      const loadsCol = rec.loads.length
+        ? rec.loads.map(c=>{
+            const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
+            return `<div class="exp-item"><span>${meta?esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
+          }).join('')
+        : '';
+      const expCol = rec.exps.length
+        ? rec.exps.map(e=>`<div class="exp-item"><span>${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
+        : '';
+      return `<div class="day-row-owner">
+        <div class="day-label">${fmtDay(d,'weekday')}</div>
+        <div class="day-content-split">
+          <div class="day-content-col">${loadsCol}</div>
+          <div class="day-content-col">${expCol}</div>
+        </div>
+      </div>`;
+    }).join('');
+    body = `<div class="owner-split-head"><div class="day-content-split"><div class="owner-col-head">${t('priceCol')}</div><div class="owner-col-head">${t('totalExp')}</div></div></div>${rows}`;
   }
   const byCat={}; exps.forEach(e=>{ byCat[e.cat]=(byCat[e.cat]||0)+e.amount; });
   const catKeys=Object.keys(byCat);
