@@ -733,13 +733,15 @@ function renderStats(){
   const wk=anchorMonFor(carsDriver), lastWk=addDays(wk,-7);
   const mk=anchorMonthFor(carsDriver), prevMk=prevMonthKey(mk);
   const filt=(fn)=>{ const arr=carsDriver.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
+  const years=new Set(carsDriver.map(c=>c.date.slice(0,4))); years.add(yr);
+  const yearList=[...years].filter(Boolean).sort().reverse();
+  const yearCards=yearList.map(y=>[(y+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===y), {k:'year',v:y}]);
   const data=[
     [t('thisWeek'), filt(c=>mondayOf(c.date)===wk), {k:'week',v:wk}],
     [t('lastWeek'), filt(c=>mondayOf(c.date)===lastWk), {k:'week',v:lastWk}],
     [t('thisMonth'), filt(c=>monthKey(c.date)===mk), {k:'month',v:mk}],
     [t('lastMonth'), filt(c=>monthKey(c.date)===prevMk), {k:'month',v:prevMk}],
-    [(yr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===yr), {k:'year',v:yr}],
-    [(prevYr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===prevYr), {k:'year',v:prevYr}],
+    ...yearCards,
     [t('total'), filt(()=>true), {k:'all',v:''}]
   ];
   document.getElementById('stats').innerHTML=data.map(([l,o,desc])=>`
@@ -1761,13 +1763,19 @@ function ownerRenderStats(){
     const pump=fuels.filter(f=>matchPeriod(f.date, desc)).reduce((a,f)=>a+(f.pump||0),0);
     return {l,g,e,fee,mi,pump,n:g-fee-e,desc};
   };
+  const oyears=new Set();
+  carsOwner.forEach(c=>oyears.add(c.date.slice(0,4)));
+  combExp.forEach(e=>oyears.add(e.date.slice(0,4)));
+  fuels.forEach(f=>oyears.add(f.date.slice(0,4)));
+  oyears.add(yr);
+  const oyearList=[...oyears].filter(Boolean).sort().reverse();
+  const oyearCards=oyearList.map(y=>card((y+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===y, {k:'year',v:y}));
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
     card(t('lastWeek'), c=>mondayOf(c.date)===lastWk, {k:'week',v:lastWk}),
     card(t('thisMonth'), c=>monthKey(c.date)===mk, {k:'month',v:mk}),
     card(t('lastMonth'), c=>monthKey(c.date)===prevMk, {k:'month',v:prevMk}),
-    card((yr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===yr, {k:'year',v:yr}),
-    card((prevYr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===prevYr, {k:'year',v:prevYr}),
+    ...oyearCards,
     card(t('total'), ()=>true, {k:'all',v:''})
   ];
   document.getElementById('stats').innerHTML=data.map(o=>`
