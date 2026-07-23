@@ -161,6 +161,11 @@
   .stat-enter { flex:0 0 auto; background:var(--chip); color:var(--accent); border:none; border-radius:7px; width:24px; height:24px; font-size:13px; font-weight:800; cursor:pointer; line-height:1; }
   .stat-enter:hover { background:var(--accent); color:#fff; }
   .maint-btn { flex:0 0 auto; white-space:nowrap; background:var(--accent); color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+  .fx-row { display:flex; gap:5px; }
+  .fx-chip { background:var(--chip); color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .fx-chip.set { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .fx-chip.empty { border-style:dashed; color:var(--accent); }
+  .fx-input { width:64px; padding:9px 6px; font-size:12px; border:1px solid var(--accent); border-radius:8px; background:var(--input-bg); color:var(--text); outline:none; }
   .action-sheet { position:fixed; inset:0; z-index:1500; display:flex; align-items:flex-end; justify-content:center; }
   .action-sheet-bg { position:absolute; inset:0; background:rgba(0,0,0,.4); }
   .action-sheet-box { position:relative; z-index:1; width:100%; max-width:460px; padding:12px; display:flex; flex-direction:column; gap:8px; }
@@ -258,20 +263,14 @@
     <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
   </div>
   <div class="row" style="margin-top:8px;">
-    <div style="flex:2 1 150px;min-width:0"><label id="lblExpDate"></label>
+    <div style="flex:1 1 100px;min-width:0"><label id="lblExpDate"></label>
       <div class="date-row">
         <button class="daybtn" onclick="changeExpDate(-1)">◀</button>
         <input id="expDate" type="date"/>
         <button class="daybtn" onclick="changeExpDate(1)">▶</button>
       </div>
     </div>
-    <div style="flex:0 0 48px"><label id="lblFixedExp" style="white-space:nowrap;font-size:9.5px"></label><input id="fixedExp" type="number" inputmode="decimal" style="padding:9px 6px"/></div>
-    <div style="flex:0 0 auto"><label>&nbsp;</label>
-      <div class="freq-sw">
-        <button type="button" id="freqWeek" class="active" onclick="setFixedFreq('week')"></button>
-        <button type="button" id="freqMonth" onclick="setFixedFreq('month')"></button>
-      </div>
-    </div>
+    <div style="flex:0 0 auto"><label id="lblFixedChips" style="font-size:9.5px;white-space:nowrap"></label><div id="fixedChips"></div></div>
   </div>
 </div>
 
@@ -340,13 +339,13 @@ const T = {
   ka:{ title:"4Truckers", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
     myShare:"ჩემი წილი:", companyFee:"კომპ. %", byWeek:"კვირები", byMonth:"თვეები", all:"ყველა", clearAll:"ყველაფრის წაშლა",
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
-    thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
+    thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"load", carsShort:"load", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
     syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა", edit:"რედაქტირება", searchPh:"ძებნა..." },
   en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
-    thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
+    thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"loads", carsShort:"loads", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
     syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description", edit:"Edit", searchPh:"Search..." }
@@ -359,7 +358,7 @@ let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
 function setActiveCars(arr){ if(appMode==='owner') carsOwner=arr; else carsDriver=arr; }
 function saveActiveCars(){ return appMode==='owner' ? saveCarsOwner() : saveCarsDriver(); }
-let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week', companyFeeHistory: [], fixedExpHistory: [] };
+let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week', companyFeeHistory: [], fixedExpHistory: [], fixedWeekHistory: [], fixedMonthHistory: [] };
 let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
@@ -514,10 +513,8 @@ function applyStaticLabels(){
   document.getElementById('lblStartMi').textContent = t('startMi');
   document.getElementById('lblEndMi').textContent = t('endMi');
   document.getElementById('lblWeekMi').textContent = t('weekMi');
-  document.getElementById('lblFixedExp').textContent = t('fixedExpLbl');
+  document.getElementById('lblFixedChips').textContent = t('fixedExpLbl');
   document.getElementById('maintBtnLbl').textContent = t('maintList');
-  document.getElementById('freqWeek').textContent = t('weekWord');
-  document.getElementById('freqMonth').textContent = t('monthWord');
 }
 function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); if(typeof updateCarAddBtn==='function') updateCarAddBtn(); renderAuthBar(); render(); }
 
@@ -896,75 +893,84 @@ function submitNewCat(){
   populateCats();
 }
 function changeExpDate(delta){ const el=document.getElementById('expDate'); el.value=addDays(el.value||todayStr(),delta); }
-function syncFixedExpUI(){
+let fixedEditing=null;
+function syncFixedExpUI(){ renderFixedChips(); }
+function renderFixedChips(){
+  const el=document.getElementById('fixedChips'); if(!el) return;
   const today=todayStr();
-  const cur=historyLatestAt(settings.fixedExpHistory, today);
-  const el=document.getElementById('fixedExp'); if(el) el.value = cur ? cur.amount : '';
-  const freq = cur ? cur.freq : (settings.fixedExpFreq||'week');
-  const wBtn=document.getElementById('freqWeek'), mBtn=document.getElementById('freqMonth');
-  if(wBtn) wBtn.classList.toggle('active', freq==='week');
-  if(mBtn) mBtn.classList.toggle('active', freq==='month');
+  const w=historyLatestAt(settings.fixedWeekHistory, today); const wv=w?w.amount:0;
+  const m=historyLatestAt(settings.fixedMonthHistory, today); const mv=m?m.amount:0;
+  const chip=(kind,val)=>{
+    const lbl = kind==='week'?t('weekWord'):t('monthWord');
+    if(fixedEditing===kind){
+      return `<input id="fixedEditInput" class="fx-input" type="number" inputmode="decimal" value="${val>0?val:''}" placeholder="${lbl}"
+        onkeydown="if(event.key==='Enter'){commitFixed('${kind}')}else if(event.key==='Escape'){fixedEditing=null;renderFixedChips()}"
+        onblur="commitFixed('${kind}')">`;
+    }
+    const show = val>0 ? (kind==='week'?'W':'M')+' '+money(val) : '＋ '+lbl;
+    return `<button type="button" class="fx-chip${val>0?' set':' empty'}" onclick="editFixed('${kind}')">${show}</button>`;
+  };
+  el.innerHTML = `<div class="fx-row">${chip('week',wv)}${chip('month',mv)}</div>`;
+  if(fixedEditing){ const i=document.getElementById('fixedEditInput'); if(i){ i.focus(); i.select(); } }
 }
-function currentFixedFreq(){
-  const cur=historyLatestAt(settings.fixedExpHistory, todayStr());
-  return cur ? cur.freq : (settings.fixedExpFreq||'week');
-}
-function saveFixedExp(){
-  const val=document.getElementById('fixedExp').value;
+function editFixed(kind){ fixedEditing=kind; renderFixedChips(); }
+function commitFixed(kind){
+  if(fixedEditing!==kind) return;
+  const i=document.getElementById('fixedEditInput'); const val=i?i.value:'';
+  fixedEditing=null;
   const amt = val===''?0:parseFloat(val);
   const today=todayStr();
-  const freq=currentFixedFreq();
-  const existing=settings.fixedExpHistory.find(h=>h.date===today);
-  if(existing){ existing.amount=amt; existing.freq=freq; }
-  else settings.fixedExpHistory.push({date:today, amount:amt, freq});
-  settings.fixedExpAmt = val===''?'':amt;
-  saveSettings(); render();
+  const hist = kind==='week'?settings.fixedWeekHistory:settings.fixedMonthHistory;
+  const existing=hist.find(h=>h.date===today);
+  if(existing) existing.amount=amt; else hist.push({date:today, amount:amt});
+  saveSettings(); renderFixedChips(); render();
 }
-function setFixedFreq(f){
-  const val=document.getElementById('fixedExp').value;
-  const amt = val===''?0:parseFloat(val);
-  const today=todayStr();
-  const existing=settings.fixedExpHistory.find(h=>h.date===today);
-  if(existing){ existing.freq=f; existing.amount=amt; }
-  else settings.fixedExpHistory.push({date:today, amount:amt, freq:f});
-  settings.fixedExpFreq=f;
-  syncFixedExpUI(); saveSettings(); render();
-}
-function weeksInMonth(mk){
-  const first=new Date(mk+'-01T00:00:00');
-  const next=new Date(first); next.setMonth(next.getMonth()+1);
-  let count=0; const day=new Date(first);
-  while(day<next){ if(day.getDay()===1) count++; day.setDate(day.getDate()+1); }
-  return count;
-}
-function fixedExpSettingFor(dateStr){
-  return historyLatestAt(settings.fixedExpHistory, dateStr);
-}
+function saveFixedExpWeek(){ /* legacy no-op */ }
+function saveFixedExpMonth(){ /* legacy no-op */ }
 function fixedCostFor(desc){
   const dates=[]; carsOwner.forEach(c=>{ if(matchPeriod(c.date, desc)) dates.push(c.date); }); expenses.forEach(e=>{ if(matchPeriod(e.date, desc)) dates.push(e.date); });
   if(!dates.length) return 0;
-  const seen=new Map();
+  let total=0;
+  const weekAmts=new Map();
   dates.forEach(d=>{
-    const setting=fixedExpSettingFor(d);
-    if(!setting || !setting.amount) return;
-    if(desc.k==='week' && setting.freq!=='week') return;
-    const bucketKey=(setting.freq==='month' ? monthKey(d) : mondayOf(d));
-    const key=setting.freq+':'+bucketKey;
-    if(!seen.has(key)) seen.set(key, setting.amount);
+    const h=historyLatestAt(settings.fixedWeekHistory, d);
+    if(!h || !h.amount) return;
+    const bk=mondayOf(d);
+    if(!weekAmts.has(bk)) weekAmts.set(bk, h.amount);
   });
-  let total=0; seen.forEach(v=>total+=v);
+  weekAmts.forEach(v=>total+=v);
+  if(desc.k!=='week'){
+    const monthAmts=new Map();
+    dates.forEach(d=>{
+      const h=historyLatestAt(settings.fixedMonthHistory, d);
+      if(!h || !h.amount) return;
+      const bk=monthKey(d);
+      if(!monthAmts.has(bk)) monthAmts.set(bk, h.amount);
+    });
+    monthAmts.forEach(v=>total+=v);
+  }
   return total;
 }
 
 // --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
 function normalizeSettings(){
   if(!Array.isArray(settings.companyFeeHistory)) settings.companyFeeHistory=[];
-  if(!Array.isArray(settings.fixedExpHistory)) settings.fixedExpHistory=[];
+  if(!Array.isArray(settings.fixedWeekHistory)) settings.fixedWeekHistory=[];
+  if(!Array.isArray(settings.fixedMonthHistory)) settings.fixedMonthHistory=[];
   if(settings.companyFeeHistory.length===0 && settings.companyFee!=='' && settings.companyFee!=null && !isNaN(parseFloat(settings.companyFee))){
     settings.companyFeeHistory.push({date:'2000-01-01', value:parseFloat(settings.companyFee)});
   }
-  if(settings.fixedExpHistory.length===0 && settings.fixedExpAmt!=='' && settings.fixedExpAmt!=null && !isNaN(parseFloat(settings.fixedExpAmt))){
-    settings.fixedExpHistory.push({date:'2000-01-01', amount:parseFloat(settings.fixedExpAmt), freq:settings.fixedExpFreq||'week'});
+  // მიგრაცია ძველი ერთიანი fixedExpHistory-დან (თუ არსებობს) week/month ცალკე ისტორიებში
+  if(Array.isArray(settings.fixedExpHistory) && settings.fixedExpHistory.length){
+    settings.fixedExpHistory.forEach(h=>{
+      if(h.freq==='month'){ if(!settings.fixedMonthHistory.some(x=>x.date===h.date)) settings.fixedMonthHistory.push({date:h.date, amount:h.amount}); }
+      else { if(!settings.fixedWeekHistory.some(x=>x.date===h.date)) settings.fixedWeekHistory.push({date:h.date, amount:h.amount}); }
+    });
+    settings.fixedExpHistory=[];
+  } else if(settings.fixedWeekHistory.length===0 && settings.fixedMonthHistory.length===0 && settings.fixedExpAmt!=='' && settings.fixedExpAmt!=null && !isNaN(parseFloat(settings.fixedExpAmt))){
+    const amt=parseFloat(settings.fixedExpAmt), freq=settings.fixedExpFreq||'week';
+    if(freq==='month') settings.fixedMonthHistory.push({date:'2000-01-01', amount:amt});
+    else settings.fixedWeekHistory.push({date:'2000-01-01', amount:amt});
   }
 }
 function historyLatestAt(history, dateStr){
@@ -1311,13 +1317,27 @@ function ownerRenderStats(){
   const mk=anchorMonthFor([...carsOwner, ...combExp]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
   const esum=fn=>combExp.filter(fn).reduce((a,x)=>a+x.amount,0);
+  const periodMiles=(desc)=>{
+    let total=0;
+    Object.keys(weeklyMileage).forEach(mon=>{
+      const r=weeklyMileage[mon]; if(!r || r.start==null || r.end==null) return;
+      let inP=false;
+      if(desc.k==='week') inP=(mon===desc.v);
+      else if(desc.k==='month') inP=(monthKey(mon)===desc.v);
+      else if(desc.k==='year') inP=(mon.slice(0,4)===desc.v);
+      else inP=true;
+      if(inP) total+=Math.max(0, r.end-r.start);
+    });
+    return total;
+  };
   const card=(l,fn,desc)=>{
     const gArr=carsOwner.filter(fn), eArr=combExp.filter(fn);
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
     const hasInfo=gArr.length>0 || eArr.length>0;
     const fx=hasInfo?fixedCostFor(desc):0;
-    return {l,g,e,fee,fx,n:g-fee-e-fx,desc};
+    const mi=periodMiles(desc);
+    return {l,g,e,fee,fx,mi,n:g-fee-e-fx,desc};
   };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
@@ -1333,6 +1353,7 @@ function ownerRenderStats(){
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.fx)}</div>
+      ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
 function ownerWeekColumn(mon, collapsed){
@@ -1442,7 +1463,6 @@ document.getElementById('ownStartMi').addEventListener('input', updateWeekMiDisp
 document.getElementById('ownEndMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownStartMi').addEventListener('change', saveMileageInputs);
 document.getElementById('ownEndMi').addEventListener('change', saveMileageInputs);
-document.getElementById('fixedExp').addEventListener('change', saveFixedExp);
 
 load();
 </script>
