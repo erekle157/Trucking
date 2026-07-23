@@ -232,8 +232,8 @@
   </div>
   <div class="row" id="mileageRow" style="margin-top:8px;display:none;">
     <div style="flex:0 0 56px"><label id="lblCompanyFee"></label><input id="companyFee" type="number" min="0" max="100" step="1" inputmode="numeric"/></div>
-    <div style="flex:1 1 70px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="number" inputmode="numeric"/></div>
-    <div style="flex:1 1 70px;min-width:0"><label id="lblEndMi"></label><input id="ownEndMi" type="number" inputmode="numeric"/></div>
+    <div style="flex:1 1 70px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="text" inputmode="numeric"/></div>
+    <div style="flex:1 1 70px;min-width:0"><label id="lblEndMi"></label><input id="ownEndMi" type="text" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblWeekMi"></label><div id="weekMiDisplay" class="mi-display">0</div></div>
   </div>
   <div class="settings" id="shareRow"><span id="lblShare"></span> <input id="share" type="number" min="0" max="100" step="1"/> %</div>
@@ -441,8 +441,11 @@ function initCloud(){
   });
 }
 
-function money(n){ return '$' + (n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-function moneyc(n){ return Number.isInteger(n) ? '$'+(n||0).toLocaleString('en-US') : money(n); }
+function grp(str){ return String(str).replace(/,/g,'\u202F'); }
+function money(n){ return '$' + grp((n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})); }
+function moneyc(n){ return Number.isInteger(n) ? '$'+grp((n||0).toLocaleString('en-US')) : money(n); }
+function miFmt(n){ return grp((n||0).toLocaleString('en-US')); }
+function parseMi(str){ const v=parseFloat(String(str==null?'':str).replace(/[\s,\u202F]/g,'')); return isNaN(v)?NaN:v; }
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function routeStates(r){ if(!r) return ''; const st=r.match(/\b[A-Z]{2}\b/g); if(st&&st.length>=2) return st[0]+' → '+st[st.length-1]; return r; }
 function dpmFmt(v){ return '$'+(v||0).toFixed(2); }
@@ -682,7 +685,7 @@ function weekColumn(mon, collapsed){
         const dsum=items.reduce((a,x)=>a+x.price,0);
         const dmi=items.reduce((a,x)=>a+(x.miles||0),0);
         const chips=items.map(c=>{
-          const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
+          const meta=[routeStates(c.route), (c.miles? miFmt(c.miles)+' mi':'')].filter(Boolean).join(' · ');
           return `<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
         }).join('');
         const parts=[];
@@ -696,7 +699,7 @@ function weekColumn(mon, collapsed){
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b></div>
       <div class="fshare">${t('shareFoot')} ${money(shareOf(g))}</div>
-      ${wmi>0?`<div class="wk-dpm">$/m: ${dpmFmt(g/wmi)} · ${wmi} mi</div>`:''}
+      ${wmi>0?`<div class="wk-dpm">$/m: ${dpmFmt(g/wmi)} · ${miFmt(wmi)} mi</div>`:''}
       <div class="wk-cnt">${list.length} ${t('cars')}</div>
     </div>
   </div>`;
@@ -943,9 +946,9 @@ function weeklyMiles(mon){
   return Math.max(0, r.end-r.start);
 }
 function updateWeekMiDisplay(){
-  const s=parseFloat(document.getElementById('ownStartMi').value); const e=parseFloat(document.getElementById('ownEndMi').value);
+  const s=parseMi(document.getElementById('ownStartMi').value); const e=parseMi(document.getElementById('ownEndMi').value);
   const wm = (!isNaN(s)&&!isNaN(e)) ? Math.max(0, e-s) : 0;
-  document.getElementById('weekMiDisplay').textContent = wm;
+  document.getElementById('weekMiDisplay').textContent = miFmt(wm);
 }
 function loadMileageInputs(){
   const k=mondayOf(selDate()); const r=weeklyMileage[k]||{};
@@ -954,17 +957,19 @@ function loadMileageInputs(){
     const prevK=addDays(k,-7); const prevR=weeklyMileage[prevK];
     if(prevR && prevR.end!=null) startVal=prevR.end;
   }
-  document.getElementById('ownStartMi').value = (startVal!=null) ? startVal : '';
-  document.getElementById('ownEndMi').value = (r.end!=null) ? r.end : '';
+  document.getElementById('ownStartMi').value = (startVal!=null) ? miFmt(startVal) : '';
+  document.getElementById('ownEndMi').value = (r.end!=null) ? miFmt(r.end) : '';
   updateWeekMiDisplay();
 }
 function saveMileageInputs(){
   const k=mondayOf(selDate());
   const sVal=document.getElementById('ownStartMi').value, eVal=document.getElementById('ownEndMi').value;
-  const s=sVal===''?null:parseFloat(sVal), e=eVal===''?null:parseFloat(eVal);
+  const s=sVal.trim()===''?null:parseMi(sVal), e=eVal.trim()===''?null:parseMi(eVal);
   pushHistory();
-  weeklyMileage[k] = { start:s, end:e };
+  weeklyMileage[k] = { start:(s!=null&&!isNaN(s))?s:null, end:(e!=null&&!isNaN(e))?e:null };
   store.set('weeklyMileage', JSON.stringify(weeklyMileage)); pushCloud();
+  document.getElementById('ownStartMi').value = (weeklyMileage[k].start!=null) ? miFmt(weeklyMileage[k].start) : '';
+  document.getElementById('ownEndMi').value = (weeklyMileage[k].end!=null) ? miFmt(weeklyMileage[k].end) : '';
   updateWeekMiDisplay(); render();
 }
 
@@ -1109,7 +1114,7 @@ function renderMaintTable(){
       const action = (x.id===maintMenuId)
         ? `<div class="m-menu"><button class="m-menu-btn edit" onclick="editMaint('${x.id}')" title="${t('edit')}">✏️</button><button class="m-menu-btn del" onclick="confirmDelMaint('${x.id}')" title="${t('del')}">🗑</button><button class="m-menu-btn" onclick="closeMaintMenu()" title="${t('cancelEdit')}">↩</button></div>`
         : `<button class="m-del" onclick="openMaintMenu('${x.id}')" title="${t('del')}">✕</button>`;
-      return `<tr><td style="white-space:nowrap">${fmtDayNumY(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc" onclick="this.classList.toggle('expanded')">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
+      return `<tr><td style="white-space:nowrap">${fmtDayNumY(x.date)}</td><td class="num">${x.mileage!=null?miFmt(x.mileage):''}</td><td class="m-desc" onclick="this.classList.toggle('expanded')">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
     }).join('')}
     <tr class="cat-grp-row"><td colspan="3">${t('total')}</td><td class="num">${money(total)}</td><td></td></tr>
   </tbody></table>`;
@@ -1191,7 +1196,7 @@ function renderDetail(){
 
   const loadsTable = loads.length
     ? `<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">mi</th><th class="num">${t('priceCol')}</th></tr></thead><tbody>${
-        loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles||''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
+        loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles?miFmt(c.miles):''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
     : `<div class="detail-empty">${t('noEntries')}</div>`;
 
   let expSection='';
@@ -1295,7 +1300,7 @@ function ownerWeekColumn(mon, collapsed){
       const rec=byDate[d]||{loads:[],exps:[]};
       const loadsCol = rec.loads.length
         ? rec.loads.map(c=>{
-            const meta=[routeStates(c.route), (c.miles? c.miles+' mi':'')].filter(Boolean).join(' · ');
+            const meta=[routeStates(c.route), (c.miles? miFmt(c.miles)+' mi':'')].filter(Boolean).join(' · ');
             return `<div class="exp-item"><span>${meta?esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
           }).join('')
         : '';
@@ -1326,7 +1331,7 @@ function ownerWeekColumn(mon, collapsed){
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
-      ${wmi>0?`<div class="wk-dpm">${t('weekMiLbl')}: ${wmi} mi</div>`:''}
+      ${wmi>0?`<div class="wk-dpm">${t('weekMiLbl')}: ${miFmt(wmi)} mi</div>`:''}
       <div class="wk-cnt">${loads.length} ${t('cars')} · ${exps.length} ${t('expTitle')}</div>
     </div>
   </div>`;
