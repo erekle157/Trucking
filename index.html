@@ -147,7 +147,7 @@
   .rowday { color:var(--sub); }
   .share-col { color:var(--accent); font-weight:600; }
   .del { background:none; color:var(--del); padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
-  .udbar { position:fixed; right:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:500; }
+  .udbar { position:fixed; right:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1200; }
   .udbtn { width:46px; height:46px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text);
     font-size:20px; cursor:pointer; box-shadow:0 2px 8px var(--shadow); display:flex; align-items:center; justify-content:center; }
   .udbtn:disabled { opacity:.35; cursor:default; }
@@ -174,6 +174,16 @@
   .detail-page th.num, .detail-page td.num { text-align:right; }
   .detail-page td { padding:8px; border-top:1px solid var(--row-line); font-size:13px; }
   .detail-empty { color:var(--muted2); font-size:13px; padding:10px; text-align:center; }
+  .m-desc { max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .m-del { background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:13px; padding:2px 4px; line-height:1; }
+  .m-del:hover { color:var(--del); }
+  .maint-search-btn { flex:0 0 auto; background:var(--chip); border:1px solid var(--border); border-radius:9px; padding:7px 11px; font-size:15px; cursor:pointer; }
+  .maint-search-btn:hover { border-color:var(--accent); }
+  #maintSearchInput { width:100%; }
+  .m-menu { display:inline-flex; gap:4px; }
+  .m-menu-btn { background:var(--chip); border:1px solid var(--border); border-radius:7px; padding:3px 6px; font-size:13px; cursor:pointer; line-height:1; }
+  .m-menu-btn.del:hover { border-color:var(--del); }
+  .m-menu-btn.edit:hover { border-color:var(--accent); }
   .cat-group-row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
   .cat-group { flex:1 1 150px; min-width:150px; margin-bottom:0; background:var(--card); border-radius:11px; overflow:hidden; }
   .cat-group-head { display:flex; justify-content:space-between; padding:9px 12px; font-weight:800; font-size:14px; background:var(--row-line); }
@@ -315,14 +325,14 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა", edit:"რედაქტირება", searchPh:"ძებნა..." },
   en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description", edit:"Edit", searchPh:"Search..." }
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -523,11 +533,31 @@ async function saveCarsOwner(){ await store.set('carsOwner',JSON.stringify(carsO
 async function saveExpenses(){ await store.set('expenses',JSON.stringify(expenses)); pushCloud(); }
 async function saveSettings(){ await store.set('settings',JSON.stringify(settings)); pushCloud(); }
 
-let undoStack={driver:[],owner:[]}, redoStack={driver:[],owner:[]};
-function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn'); if(u)u.disabled=!undoStack[appMode==='owner'?'owner':'driver'].length; if(r)r.disabled=!redoStack[appMode==='owner'?'owner':'driver'].length; }
-function pushHistory(){ const k=appMode==='owner'?'owner':'driver'; undoStack[k].push(JSON.stringify(activeCars())); if(undoStack[k].length>100) undoStack[k].shift(); redoStack[k]=[]; updateUndoRedo(); }
-function undo(){ const k=appMode==='owner'?'owner':'driver'; if(!undoStack[k].length) return; redoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(undoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
-function redo(){ const k=appMode==='owner'?'owner':'driver'; if(!redoStack[k].length) return; undoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(redoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
+let undoStack=[], redoStack=[];
+function snapshot(){
+  return JSON.stringify({
+    carsDriver, carsOwner, expenses, maintenance, weeklyMileage, customCats, settings
+  });
+}
+function applySnapshot(s){
+  const d=JSON.parse(s);
+  carsDriver=d.carsDriver||[]; carsOwner=d.carsOwner||[]; expenses=d.expenses||[];
+  maintenance=d.maintenance||[]; weeklyMileage=d.weeklyMileage||{}; customCats=d.customCats||[];
+  settings=d.settings||settings; normalizeSettings();
+  store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
+  store.set('expenses',JSON.stringify(expenses)); store.set('maintenance',JSON.stringify(maintenance));
+  store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
+  store.set('settings',JSON.stringify(settings));
+  pushCloud();
+  document.getElementById('share').value=settings.share; syncCompanyFeeUI();
+  if(appMode==='owner'){ loadMileageInputs(); syncFixedExpUI(); }
+  populateCats(); render();
+  if(document.getElementById('maintPage').style.display==='block') renderMaintTable();
+}
+function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
+function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>100) undoStack.shift(); redoStack=[]; updateUndoRedo(); }
+function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); applySnapshot(undoStack.pop()); updateUndoRedo(); }
+function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); applySnapshot(redoStack.pop()); updateUndoRedo(); }
 
 function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
 function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value){ eEl.value=dEl.value; } }
@@ -930,6 +960,7 @@ function saveMileageInputs(){
   const k=mondayOf(selDate());
   const sVal=document.getElementById('ownStartMi').value, eVal=document.getElementById('ownEndMi').value;
   const s=sVal===''?null:parseFloat(sVal), e=eVal===''?null:parseFloat(eVal);
+  pushHistory();
   weeklyMileage[k] = { start:s, end:e };
   store.set('weeklyMileage', JSON.stringify(weeklyMileage)); pushCloud();
   updateWeekMiDisplay(); render();
@@ -952,6 +983,7 @@ function addExpense(){
   if(!amt||amt<=0){ el.focus(); return; }
   const cat=selectedCat||'Other';
   const date=document.getElementById('expDate').value||todayStr();
+  pushHistory();
   if(editingExpId){
     const ex=expenses.find(e=>e.id===editingExpId);
     if(ex){ ex.cat=cat; ex.amount=amt; ex.date=date; }
@@ -986,7 +1018,7 @@ function updateExpAddBtn(){
   const cbtn=document.getElementById('expCancelEdit');
   if(cbtn) cbtn.style.display = editingExpId ? '' : 'none';
 }
-function delExpense(id){ if(editingExpId===id) cancelEditExpense(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
+function delExpense(id){ if(editingExpId===id) cancelEditExpense(); pushHistory(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
 
 // --- დეტალური გვერდი (drill-down) ---
 let detailDesc=null, detailLabel='';
@@ -1012,12 +1044,18 @@ function closeDetail(){
 
 // --- Maintenance List გვერდი ---
 function saveMaint(){ store.set('maintenance', JSON.stringify(maintenance)); pushCloud(); }
+let maintSearch='', maintSearchOpen=false, editingMaintId=null, maintMenuId=null;
 function openMaint(){
   const p=document.getElementById('maintPage');
+  maintSearch=''; maintSearchOpen=false; editingMaintId=null; maintMenuId=null;
   p.innerHTML = `
     <div class="detail-head">
       <button class="detail-back" onclick="closeMaint()">← ${t('back')}</button>
-      <div class="detail-title">🔧 ${t('maintList')}</div>
+      <div class="detail-title" style="flex:1;min-width:0">🔧 ${t('maintList')}</div>
+      <button class="maint-search-btn" onclick="toggleMaintSearch()">🔍</button>
+    </div>
+    <div id="maintSearchRow" style="display:none;margin-bottom:10px">
+      <input id="maintSearchInput" type="text" placeholder="${t('searchPh')}" oninput="maintSearch=this.value; renderMaintTable()">
     </div>
     <div class="card">
       <div class="row">
@@ -1035,7 +1073,8 @@ function openMaint(){
         <div style="flex:0 0 78px"><label>${t('priceCol')}</label><input id="mPrice" type="number" inputmode="decimal"></div>
       </div>
       <div class="row" style="margin-top:8px">
-        <button class="add" style="flex:1 1 auto" onclick="addMaint()">${t('add')}</button>
+        <button class="add" id="maintAddBtn" style="flex:1 1 auto" onclick="addMaint()">${t('add')}</button>
+        <button class="daybtn" id="maintCancelEdit" onclick="cancelMaintEdit()" style="display:none" title="${t('cancelEdit')}">✕</button>
       </div>
     </div>
     <div id="maintTableWrap"></div>`;
@@ -1043,19 +1082,56 @@ function openMaint(){
   renderMaintTable();
   p.style.display='block'; document.body.style.overflow='hidden'; window.scrollTo(0,0);
 }
+function toggleMaintSearch(){
+  maintSearchOpen=!maintSearchOpen;
+  const row=document.getElementById('maintSearchRow');
+  row.style.display = maintSearchOpen ? '' : 'none';
+  if(maintSearchOpen){ const i=document.getElementById('maintSearchInput'); if(i) i.focus(); }
+  else { maintSearch=''; renderMaintTable(); }
+}
 function closeMaint(){
   document.getElementById('maintPage').style.display='none';
   document.body.style.overflow='';
 }
 function renderMaintTable(){
   const wrap=document.getElementById('maintTableWrap'); if(!wrap) return;
-  const rows=maintenance.slice().sort((a,b)=>a.date<b.date?1:-1);
+  let rows=maintenance.slice().sort((a,b)=>a.date<b.date?1:-1);
+  const q=maintSearch.trim().toLowerCase();
+  if(q){ rows=rows.filter(x=>(x.desc||'').toLowerCase().includes(q) || (x.date||'').includes(q) || String(x.mileage||'').includes(q) || String(x.price||'').includes(q)); }
   if(!rows.length){ wrap.innerHTML=`<div class="detail-empty">${t('noEntries')}</div>`; return; }
   const total=rows.reduce((s,x)=>s+(x.price||0),0);
   wrap.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">mi</th><th>${t('maintDesc')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
-    rows.map(x=>`<tr><td>${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td>${esc(x.desc||'')}</td><td class="num" style="font-weight:700">${money(x.price||0)}</td><td class="num"><button class="del" onclick="delMaint('${x.id}')">${t('del')}</button></td></tr>`).join('')}
+    rows.map(x=>{
+      const action = (x.id===maintMenuId)
+        ? `<div class="m-menu"><button class="m-menu-btn edit" onclick="editMaint('${x.id}')" title="${t('edit')}">✏️</button><button class="m-menu-btn del" onclick="confirmDelMaint('${x.id}')" title="${t('del')}">🗑</button><button class="m-menu-btn" onclick="closeMaintMenu()" title="${t('cancelEdit')}">↩</button></div>`
+        : `<button class="m-del" onclick="openMaintMenu('${x.id}')" title="${t('del')}">✕</button>`;
+      return `<tr><td style="white-space:nowrap">${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
+    }).join('')}
     <tr class="cat-grp-row"><td colspan="3">${t('total')}</td><td class="num">${money(total)}</td><td></td></tr>
   </tbody></table>`;
+}
+function openMaintMenu(id){ maintMenuId=id; renderMaintTable(); }
+function closeMaintMenu(){ maintMenuId=null; renderMaintTable(); }
+function confirmDelMaint(id){ maintMenuId=null; delMaint(id); }
+function editMaint(id){
+  const m=maintenance.find(x=>x.id===id); if(!m) return;
+  editingMaintId=id; maintMenuId=null;
+  document.getElementById('mDate').value=m.date;
+  document.getElementById('mMiles').value=(m.mileage!=null)?m.mileage:'';
+  document.getElementById('mDesc').value=m.desc||'';
+  document.getElementById('mPrice').value=m.price||'';
+  document.getElementById('maintAddBtn').textContent=t('saveExp');
+  document.getElementById('maintCancelEdit').style.display='';
+  renderMaintTable();
+  window.scrollTo(0,0);
+  document.getElementById('mDesc').focus();
+}
+function cancelMaintEdit(){
+  editingMaintId=null;
+  document.getElementById('mDate').value=todayStr();
+  document.getElementById('mMiles').value=''; document.getElementById('mDesc').value=''; document.getElementById('mPrice').value='';
+  document.getElementById('maintAddBtn').textContent=t('add');
+  document.getElementById('maintCancelEdit').style.display='none';
 }
 function addMaint(){
   const price=parseFloat(document.getElementById('mPrice').value)||0;
@@ -1064,12 +1140,21 @@ function addMaint(){
   const mileage=mVal===''?null:parseFloat(mVal);
   const desc=document.getElementById('mDesc').value.trim();
   if(price<=0 && !desc){ document.getElementById('mDesc').focus(); return; }
-  maintenance.push({ id:Date.now()+''+Math.random(), date, mileage, desc, price });
+  pushHistory();
+  if(editingMaintId){
+    const m=maintenance.find(x=>x.id===editingMaintId);
+    if(m){ m.date=date; m.mileage=mileage; m.desc=desc; m.price=price; }
+    editingMaintId=null;
+    document.getElementById('maintAddBtn').textContent=t('add');
+    document.getElementById('maintCancelEdit').style.display='none';
+  } else {
+    maintenance.push({ id:Date.now()+''+Math.random(), date, mileage, desc, price });
+  }
   document.getElementById('mPrice').value=''; document.getElementById('mMiles').value=''; document.getElementById('mDesc').value='';
   saveMaint(); renderMaintTable();
   document.getElementById('mDesc').focus();
 }
-function delMaint(id){ maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); }
+function delMaint(id){ pushHistory(); maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); }
 function changeMaintDate(delta){ const el=document.getElementById('mDate'); if(el) el.value=addDays(el.value||todayStr(),delta); }
 
 function renderDetail(){
