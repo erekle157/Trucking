@@ -136,6 +136,9 @@
   .pc-txt { flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .pchip button { flex:0 0 auto; background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:12px; padding:0 2px; line-height:1; }
   .pchip button:hover { color:var(--del); }
+  .pchip.fixed-chip { border:1px dashed var(--del-soft); opacity:.85; }
+  .exp-item.fixed-item { opacity:.85; }
+  .fx-entry-input { width:64px; padding:2px 4px; font-size:12px; border:1px solid var(--accent); border-radius:6px; background:var(--input-bg); color:var(--text); outline:none; text-align:right; }
   .day-sum { align-self:flex-end; font-size:10px; color:var(--muted2); font-variant-numeric:tabular-nums; }
   .week-foot { padding:7px 9px; border-top:2px solid var(--border-soft); font-size:12px; display:flex; flex-direction:column; gap:1px; }
   .week-foot .fshare { font-size:14px; color:var(--accent); font-weight:700; }
@@ -208,7 +211,6 @@
   .cat-group-line:first-child { border-top:none; }
 </style>
 </head><body>
-
 <div class="topbar">
   <div class="topleft">
     <h1>🚚 <span id="appTitle"></span></h1>
@@ -226,7 +228,6 @@
   </div>
 </div>
 <div class="cloud" id="cloudStatus"></div>
-
 <div class="card">
   <div class="row">
     <div class="f-price"><label id="lblPrice"></label><input id="price" type="number" inputmode="decimal" enterkeyhint="done"/></div>
@@ -253,7 +254,6 @@
   </div>
   <div class="settings" id="shareRow"><span id="lblShare"></span> <input id="share" type="number" min="0" max="100" step="1"/> %</div>
 </div>
-
 <div class="card" id="expCard" style="display:none">
   <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
     <div class="cat-row" id="expCatRow" style="flex:1;margin-bottom:0"></div>
@@ -275,9 +275,7 @@
     <div style="flex:0 0 88px;min-width:0"><label id="lblFixedChips" style="font-size:9.5px;white-space:nowrap"></label><div id="fixedChips"></div></div>
   </div>
 </div>
-
 <div class="cards" id="stats"></div>
-
 <div class="card" style="margin-top:6px;">
   <div class="tabs">
     <button id="tab-week" class="active" onclick="setView('week')"></button>
@@ -286,14 +284,11 @@
   </div>
   <div id="content"></div>
 </div>
-
 <div class="udbar">
   <button id="redoBtn" class="udbtn" onclick="redo()">↷</button>
   <button id="undoBtn" class="udbtn" onclick="undo()">↶</button>
 </div>
-
 <div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
-
 <div id="detailPage" class="detail-page" style="display:none"></div>
 <div id="maintPage" class="detail-page" style="display:none"></div>
 <div id="actionSheet" class="action-sheet" style="display:none">
@@ -304,7 +299,6 @@
     <button class="as-btn as-cancel" id="asCancel" onclick="closeActionSheet()"></button>
   </div>
 </div>
-
 <script>
 (function(){
   var icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' rx='104' fill='%232fa36b'/%3E%3Ctext x='50%25' y='55%25' font-size='300' text-anchor='middle' dominant-baseline='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E";
@@ -315,7 +309,6 @@
     var al=document.createElement("link"); al.rel="apple-touch-icon"; al.href=icon; document.head.appendChild(al);
   }catch(e){}
 })();
-
 const firebaseConfig = {
   apiKey: "AIzaSyB91OtMwrzPq-W9FmmBsxGsiKRHvYmlwJs",
   authDomain: "trucking-tracker-dc621.firebaseapp.com",
@@ -324,7 +317,6 @@ const firebaseConfig = {
   messagingSenderId: "237965493114",
   appId: "1:237965493114:web:3cdadba88d127e77ea0cc3"
 };
-
 // ---- თემა / theme ----
 let currentTheme = 'light';
 function applyTheme(th){
@@ -334,7 +326,6 @@ function applyTheme(th){
   const m=document.querySelector('meta[name=theme-color]'); if(m) m.setAttribute('content', currentTheme==='dark'?'#14161a':'#2fa36b');
 }
 function toggleTheme(){ const nx = currentTheme==='dark'?'light':'dark'; applyTheme(nx); store.set('theme', nx); }
-
 // ---- ენა / language ----
 let lang = 'ka';
 const T = {
@@ -354,7 +345,6 @@ const T = {
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
-
 let carsDriver = [];
 let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
@@ -370,7 +360,6 @@ let maintenance = [];
 let EXP_CATS = ['Fuel','DEF','Toll'];
 let customCats = [];
 const hasStore = typeof window !== 'undefined' && window.storage;
-
 const store = {
   async get(key){
     if(hasStore){ try{ const r=await window.storage.get('haul:'+key); return r?r.value:null; }catch(e){} }
@@ -381,10 +370,8 @@ const store = {
     try{ localStorage.setItem('haul:'+key,val); }catch(e){}
   }
 };
-
 // ---- ღრუბელი + Google login ----
 let db=null, cloudUid=null, cloudEmail='', isSignedIn=false, firstSnap=true, pushTimer=null, unsub=null;
-
 function renderAuthBar(){
   const el=document.getElementById('cloudStatus'); if(!el) return;
   if(isSignedIn){
@@ -403,7 +390,6 @@ function signInGoogle(){
   });
 }
 function signOutCloud(){ if(typeof firebase!=='undefined'){ firebase.auth().signOut(); } }
-
 function pushCloud(){
   if(!db || !cloudUid) return;
   clearTimeout(pushTimer);
@@ -457,7 +443,6 @@ function initCloud(){
     else { cloudUid=null; isSignedIn=false; if(unsub){ unsub(); unsub=null; } renderAuthBar(); }
   });
 }
-
 function grp(str){ return String(str).replace(/,/g,'\u202F'); }
 function money(n){ return '$' + grp((n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})); }
 function moneyc(n){ return Number.isInteger(n) ? '$'+grp((n||0).toLocaleString('en-US')) : money(n); }
@@ -480,7 +465,6 @@ function dm(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:
 function monthKey(s){ return (s||'').slice(0,7); }
 function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString(loc(),{month:'long',year:'numeric'}); }
 function shareOf(g){ return g*(settings.share/100); }
-
 function applyStaticLabels(){
   document.documentElement.lang = lang;
   document.getElementById('appTitle').textContent = t('title');
@@ -519,7 +503,6 @@ function applyStaticLabels(){
   document.getElementById('maintBtnLbl').textContent = t('maintList');
 }
 function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); if(typeof updateCarAddBtn==='function') updateCarAddBtn(); renderAuthBar(); render(); }
-
 async function load(){
   try{ const r=await store.get('theme'); if(r==='dark'||r==='light') applyTheme(r);
        else applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark':'light'); }catch(e){ applyTheme('light'); }
@@ -552,7 +535,6 @@ async function saveCarsDriver(){ await store.set('cars',JSON.stringify(carsDrive
 async function saveCarsOwner(){ await store.set('carsOwner',JSON.stringify(carsOwner)); pushCloud(); }
 async function saveExpenses(){ await store.set('expenses',JSON.stringify(expenses)); pushCloud(); }
 async function saveSettings(){ await store.set('settings',JSON.stringify(settings)); pushCloud(); }
-
 let undoStack=[], redoStack=[];
 function snapshot(){
   return JSON.stringify({
@@ -578,7 +560,6 @@ function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=documen
 function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>100) undoStack.shift(); redoStack=[]; updateUndoRedo(); }
 function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); applySnapshot(undoStack.pop()); updateUndoRedo(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); applySnapshot(redoStack.pop()); updateUndoRedo(); }
-
 function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
 function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value){ eEl.value=dEl.value; } }
 let editingCarId=null;
@@ -639,7 +620,6 @@ function goToday(){
   render();
 }
 function resetAll(){ if(confirm(t('confirmClear'))){ setActiveCars([]); saveActiveCars(); render(); } }
-
 function renderStats(){
   const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
   const wk=anchorMonFor(carsDriver), lastWk=addDays(wk,-7);
@@ -661,7 +641,6 @@ function renderStats(){
       <div class="cnt">${o.n} ${t('cars')}</div>
     </div>`).join('');
 }
-
 function anchorMonFor(arr){
   const todayMon=mondayOf(todayStr());
   if(!arr.length) return todayMon;
@@ -701,7 +680,6 @@ function weekColumn(mon, collapsed){
   const g=list.reduce((a,x)=>a+x.price,0);
   const cur = (mon===mondayOf(selDate())) ? ' current' : '';
   const wmi=list.reduce((a,x)=>a+(x.miles||0),0);
-
   if(collapsed){
     const byDayC={}; list.forEach(c=>{ (byDayC[c.date]=byDayC[c.date]||[]).push(c); });
     const daysC=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
@@ -719,7 +697,6 @@ function weekColumn(mon, collapsed){
       </div>
     </div>`;
   }
-
   const byDay={}; list.forEach(c=>{ (byDay[c.date]=byDay[c.date]||[]).push(c); });
   const days=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
   const body = days.map(d=>{
@@ -758,7 +735,6 @@ function renderWeekView(){
     </div>
     <div class="week-grid">${weekColumn(older, true)}${weekColumn(newest, false)}</div>`;
 }
-
 function renderContent(){
   const c=document.getElementById('content');
   if(view==='week'){ c.innerHTML=renderWeekView(); return; }
@@ -781,7 +757,6 @@ function renderContent(){
   html+=`</tbody></table>`; c.innerHTML=html;
 }
 function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent(); } else { renderStats(); renderContent(); } if(detailDesc) renderDetail(); }
-
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
@@ -795,7 +770,6 @@ document.getElementById('companyFee').addEventListener('change', e=>{
   }
   saveSettings(); render();
 });
-
 // --- კვირებზე გადაფურცვლა (swipe) ---
 (function(){
   const el=document.getElementById('content');
@@ -810,7 +784,6 @@ document.getElementById('companyFee').addEventListener('change', e=>{
   }, {passive:true});
 })();
 document.getElementById('date').addEventListener('change', ()=>{ syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); });
-
 // --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
 let tessLoading=null;
 function ensureTesseract(){
@@ -839,7 +812,6 @@ async function handleImage(file){
 }
 document.getElementById('imgBtn').addEventListener('click', ()=>document.getElementById('imgInput').click());
 document.getElementById('imgInput').addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; handleImage(f); e.target.value=''; });
-
 (function(){
   const kbBar=document.getElementById('kbBar');
   const priceEl=document.getElementById('price');
@@ -849,7 +821,6 @@ document.getElementById('imgInput').addEventListener('change', e=>{ const f=e.ta
   if(window.visualViewport){ window.visualViewport.addEventListener('resize', positionBar); window.visualViewport.addEventListener('scroll', positionBar); }
   document.getElementById('kbAdd').addEventListener('pointerdown', e=>{ e.preventDefault(); addCar(); setTimeout(positionBar,50); });
 })();
-
 // --- owner-operator რეჟიმი ---
 let selectedCat = EXP_CATS[0];
 let addingCat = false;
@@ -938,6 +909,34 @@ function commitFixed(kind){
   }
   saveSettings(); renderFixedChips(); render();
 }
+let fxEntryEdit=null;
+function editFixedEntry(kind, pkey){
+  fxEntryEdit={kind, pkey};
+  render();
+  const i=document.getElementById('fxEntryInput'); if(i){ i.focus(); i.select(); }
+}
+function commitFixedEntry(val){
+  if(!fxEntryEdit) return;
+  const kind=fxEntryEdit.kind, pkey=fxEntryEdit.pkey; fxEntryEdit=null;
+  const num = val===''?0:parseFloat(val);
+  if(isNaN(num)){ render(); return; }
+  pushHistory();
+  if(kind==='week') settings.fixedWeekOverrides[pkey]=num;
+  else settings.fixedMonthOverrides[pkey]=num;
+  saveSettings(); render();
+}
+function fixedEntryHTML(e, variant){
+  const editing = fxEntryEdit && fxEntryEdit.kind===e.fkind && fxEntryEdit.pkey===e.pkey;
+  const inp = `<input id="fxEntryInput" class="fx-entry-input" type="number" inputmode="decimal" value="${e.amount}" onkeydown="if(event.key==='Enter'){commitFixedEntry(this.value)}else if(event.key==='Escape'){fxEntryEdit=null;render()}" onblur="commitFixedEntry(this.value)">`;
+  if(variant==='chip'){
+    return editing
+      ? `<span class="pchip neg fixed-chip">${inp}</span>`
+      : `<span class="pchip neg fixed-chip"><span class="pc-txt" onclick="editFixedEntry('${e.fkind}','${e.pkey}')" style="cursor:pointer">🔒 −${moneyc(e.amount)}</span></span>`;
+  }
+  return editing
+    ? `<div class="exp-item fixed-item"><span>🔒 ${esc(e.cat)}</span><span class="exp-amt">${inp}</span></div>`
+    : `<div class="exp-item fixed-item"><span onclick="editFixedEntry('${e.fkind}','${e.pkey}')" style="cursor:pointer">🔒 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`;
+}
 function saveFixedExpWeek(){ /* legacy no-op */ }
 function saveFixedExpMonth(){ /* legacy no-op */ }
 function perMileRateFor(dateStr){ const h=historyLatestAt(settings.perMileHistory, dateStr); return h?h.rate:0; }
@@ -979,13 +978,42 @@ function fixedCostFor(desc){
   }
   return total;
 }
-
+function fixedAmountForWeek(bk){
+  if(settings.fixedWeekOverrides && Object.prototype.hasOwnProperty.call(settings.fixedWeekOverrides, bk)) return settings.fixedWeekOverrides[bk]||0;
+  const h=historyLatestAt(settings.fixedWeekHistory, addDays(bk,6));
+  return h?h.amount:0;
+}
+function fixedAmountForMonth(bk){
+  if(settings.fixedMonthOverrides && Object.prototype.hasOwnProperty.call(settings.fixedMonthOverrides, bk)) return settings.fixedMonthOverrides[bk]||0;
+  const h=historyLatestAt(settings.fixedMonthHistory, bk+'-31');
+  return h?h.amount:0;
+}
+function fixedAsExp(){
+  const list=[];
+  const allDates=[]; carsOwner.forEach(c=>allDates.push(c.date)); expenses.forEach(e=>allDates.push(e.date));
+  if(!allDates.length) return list;
+  const weekSeen=new Map();
+  allDates.forEach(d=>{ const bk=mondayOf(d); const cur=weekSeen.get(bk); if(!cur || d<cur) weekSeen.set(bk, d); });
+  weekSeen.forEach((exDate, bk)=>{
+    const amt=fixedAmountForWeek(bk);
+    if(amt>0){ list.push({ id:'fx-w-'+bk, date:exDate, cat:t('fixedExpLbl')+' ('+t('weekWord')+')', amount:amt, isFixed:true, fkind:'week', pkey:bk }); }
+  });
+  const monthSeen=new Map();
+  allDates.forEach(d=>{ const bk=monthKey(d); const cur=monthSeen.get(bk); if(!cur || d<cur) monthSeen.set(bk, d); });
+  monthSeen.forEach((exDate, bk)=>{
+    const amt=fixedAmountForMonth(bk);
+    if(amt>0){ list.push({ id:'fx-m-'+bk, date:exDate, cat:t('fixedExpLbl')+' ('+t('monthWord')+')', amount:amt, isFixed:true, fkind:'month', pkey:bk }); }
+  });
+  return list;
+}
 // --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
 function normalizeSettings(){
   if(!Array.isArray(settings.companyFeeHistory)) settings.companyFeeHistory=[];
   if(!Array.isArray(settings.fixedWeekHistory)) settings.fixedWeekHistory=[];
   if(!Array.isArray(settings.fixedMonthHistory)) settings.fixedMonthHistory=[];
   if(!Array.isArray(settings.perMileHistory)) settings.perMileHistory=[];
+  if(!settings.fixedWeekOverrides || typeof settings.fixedWeekOverrides!=='object') settings.fixedWeekOverrides={};
+  if(!settings.fixedMonthOverrides || typeof settings.fixedMonthOverrides!=='object') settings.fixedMonthOverrides={};
   if(settings.companyFeeHistory.length===0 && settings.companyFee!=='' && settings.companyFee!=null && !isNaN(parseFloat(settings.companyFee))){
     settings.companyFeeHistory.push({date:'2000-01-01', value:parseFloat(settings.companyFee)});
   }
@@ -1050,7 +1078,6 @@ function saveMileageInputs(){
   document.getElementById('ownEndMi').value = (weeklyMileage[k].end!=null) ? miFmt(weeklyMileage[k].end) : '';
   updateWeekMiDisplay(); render();
 }
-
 function applyMode(){
   const owner = appMode==='owner';
   document.getElementById('modeDriver').classList.toggle('active', !owner);
@@ -1104,7 +1131,6 @@ function updateExpAddBtn(){
   if(cbtn) cbtn.style.display = editingExpId ? '' : 'none';
 }
 function delExpense(id){ if(editingExpId===id) cancelEditExpense(); pushHistory(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
-
 // --- დეტალური გვერდი (drill-down) ---
 let detailDesc=null, detailLabel='';
 function matchPeriod(dateStr, desc){
@@ -1126,11 +1152,10 @@ function closeDetail(){
   document.body.style.overflow='';
   detailDesc=null;
 }
-
 // --- Maintenance List გვერდი ---
 function saveMaint(){ store.set('maintenance', JSON.stringify(maintenance)); pushCloud(); }
 function maintAsExp(){ return maintenance.filter(m=>(m.price||0)>0).map(m=>({ id:m.id, date:m.date, cat:'Maintenance', amount:m.price, isMaint:true })); }
-function allExps(){ return expenses.concat(maintAsExp()); }
+function allExps(){ return expenses.concat(maintAsExp()).concat(fixedAsExp()); }
 let maintSearch='', maintSearchOpen=false, editingMaintId=null, maintMenuId=null;
 function openMaint(){
   const p=document.getElementById('maintPage');
@@ -1244,7 +1269,6 @@ function addMaint(){
 function delMaint(id){ pushHistory(); maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); render(); }
 function openMaintEdit(id){ openMaint(); editMaint(id); }
 function changeMaintDate(delta){ const el=document.getElementById('mDate'); if(el) el.value=addDays(el.value||todayStr(),delta); }
-
 // --- ერთიანი მოქმედების ფურცელი (edit/delete) ---
 let asType=null, asId=null;
 function askItemAction(type, id){
@@ -1268,7 +1292,6 @@ function doItemDelete(type,id){
   else if(type==='exp') delExpense(id);
   else if(type==='maint') delMaint(id);
 }
-
 function renderDetail(){
   if(!detailDesc) return;
   const owner = appMode==='owner';
@@ -1278,18 +1301,18 @@ function renderDetail(){
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
   const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
-  const fixedAmt = owner && (loads.length>0 || exps.length>0) ? fixedCostFor(detailDesc) : 0;
   const pmAmt = owner ? perMileCostFor(detailDesc) : 0;
-
+  const fixedTotal = owner ? exps.filter(e=>e.isFixed).reduce((a,x)=>a+x.amount,0) : 0;
+  const eNonFixed = eTotal - fixedTotal;
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
       <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
       ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
-      ${fixedAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedAmt)}</div></div>`:''}
       ${pmAmt>0?`<div class="detail-sum-box"><div class="lbl">$/m</div><div class="val" style="color:var(--del)">−${money(pmAmt)}</div></div>`:''}
-      <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eTotal)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-fixedAmt-pmAmt-eTotal)}</div></div>
+      ${fixedTotal>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedTotal)}</div></div>`:''}
+      <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eNonFixed)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-pmAmt-eTotal)}</div></div>
     </div>`;
   } else {
     summary = `<div class="detail-summary">
@@ -1298,12 +1321,10 @@ function renderDetail(){
       <div class="detail-sum-box"><div class="lbl">${t('cars')}</div><div class="val">${loads.length}</div></div>
     </div>`;
   }
-
   const loadsTable = loads.length
     ? `<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">mi</th><th class="num">${t('priceCol')}</th></tr></thead><tbody>${
         loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles?miFmt(c.miles):''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
     : `<div class="detail-empty">${t('noEntries')}</div>`;
-
   let expSection='';
   if(owner){
     let expTable;
@@ -1328,7 +1349,6 @@ function renderDetail(){
     }
     expSection = `<div class="detail-section-title">${t('totalExp')} (${exps.length})</div>${expTable}`;
   }
-
   document.getElementById('detailPage').innerHTML = `
     <div class="detail-head">
       <button class="detail-back" onclick="closeDetail()">← ${t('back')}</button>
@@ -1340,7 +1360,6 @@ function renderDetail(){
     ${expSection}
   `;
 }
-
 function ownerRenderStats(){
   const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
   const wk=anchorMonFor(carsOwner), lastWk=addDays(wk,-7);
@@ -1365,11 +1384,9 @@ function ownerRenderStats(){
     const gArr=carsOwner.filter(fn), eArr=combExp.filter(fn);
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
-    const hasInfo=gArr.length>0 || eArr.length>0;
-    const fx=hasInfo?fixedCostFor(desc):0;
     const mi=periodMiles(desc);
     const pm=perMileCostFor(desc);
-    return {l,g,e,fee,fx,pm,mi,n:g-fee-e-fx-pm,desc};
+    return {l,g,e,fee,pm,mi,n:g-fee-e-pm,desc};
   };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
@@ -1384,7 +1401,7 @@ function ownerRenderStats(){
     <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.fx+o.pm)}</div>
+      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.pm)}</div>
       ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
@@ -1395,9 +1412,8 @@ function ownerWeekColumn(mon, collapsed){
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
   const fee=companyFeeAmtForLoads(loads);
-  const fixedAmt=(loads.length>0 || exps.length>0) ? fixedCostFor({k:'week',v:mon}) : 0;
   const pmAmt=perMileCostFor({k:'week',v:mon});
-  const net=g-fee-eTotal-fixedAmt-pmAmt;
+  const net=g-fee-eTotal-pmAmt;
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
@@ -1409,6 +1425,8 @@ function ownerWeekColumn(mon, collapsed){
           const posChips=dl.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="askItemAction('car','${c.id}')" title="${t('del')}">✕</button></span>`).join('');
           const negChips=de.map(e=> e.isMaint
             ? `<span class="pchip neg"><span class="pc-txt" onclick="openMaintEdit('${e.id}')" style="cursor:pointer">🔧 −${moneyc(e.amount)}</span><button onclick="askItemAction('maint','${e.id}')" title="${t('del')}">✕</button></span>`
+            : e.isFixed
+            ? fixedEntryHTML(e,'chip')
             : `<span class="pchip neg"><span class="pc-txt" onclick="editExpense('${e.id}')" style="cursor:pointer">−${moneyc(e.amount)}</span><button onclick="askItemAction('exp','${e.id}')" title="${t('del')}">✕</button></span>`).join('');
           return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices split-lr"><div class="lr-col">${posChips}</div><div class="lr-col">${negChips}</div></div></div>`;
         }).join('')
@@ -1429,6 +1447,8 @@ function ownerWeekColumn(mon, collapsed){
       const expCol = rec.exps.length
         ? rec.exps.map(e=> e.isMaint
             ? `<div class="exp-item"><span onclick="openMaintEdit('${e.id}')" style="cursor:pointer">🔧 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="askItemAction('maint','${e.id}')">✕</button></div>`
+            : e.isFixed
+            ? fixedEntryHTML(e,'item')
             : `<div class="exp-item"><span onclick="editExpense('${e.id}')" style="cursor:pointer">${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="askItemAction('exp','${e.id}')">✕</button></div>`).join('')
         : '';
       return `<div class="day-row-owner">
@@ -1449,7 +1469,6 @@ function ownerWeekColumn(mon, collapsed){
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
       ${fee>0?`<div>${t('companyFee')}: <b>−${money(fee)}</b></div>`:''}
-      ${fixedAmt>0?`<div>${t('fixedExpLbl')}: <b>−${money(fixedAmt)}</b></div>`:''}
       ${pmAmt>0?`<div>$/m: <b>−${money(pmAmt)}</b></div>`:''}
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
@@ -1481,7 +1500,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const fx=fixedCostFor({k:'month',v:k}); const pm=perMileCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx+pm)}</td><td class="num share-col">${money(m.g-fee-fx-pm-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const pm=perMileCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+pm)}</td><td class="num share-col">${money(m.g-fee-pm-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
@@ -1490,14 +1509,12 @@ function ownerRenderContent(){
   c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th>${t('expCat')}</th><th class="num">${t('expAmt')}</th><th></th></tr></thead><tbody>${
     all.map(x=>`<tr style="cursor:pointer" onclick="editExpense('${x.id}')"><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.cat)}</td><td class="num">−${money(x.amount)}</td><td class="num"><button class="del" onclick="event.stopPropagation();askItemAction('exp','${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
 }
-
 document.getElementById('expAdd').addEventListener('click', addExpense);
 document.getElementById('expAmt').addEventListener('keydown', e=>{ if(e.key==='Enter') addExpense(); });
 document.getElementById('ownStartMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownEndMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownStartMi').addEventListener('change', saveMileageInputs);
 document.getElementById('ownEndMi').addEventListener('change', saveMileageInputs);
-
 load();
 </script>
 </body></html>
