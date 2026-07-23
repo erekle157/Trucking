@@ -169,6 +169,8 @@
   .detail-page th.num, .detail-page td.num { text-align:right; }
   .detail-page td { padding:8px; border-top:1px solid var(--row-line); font-size:13px; }
   .detail-empty { color:var(--muted2); font-size:13px; padding:10px; text-align:center; }
+  .detail-page .cat-grp-row td { font-weight:800; border-top:2px solid var(--border); background:var(--card); }
+  .detail-page .sub-cell { padding-left:22px; color:var(--muted); }
 </style>
 </head><body>
 
@@ -209,6 +211,7 @@
     <input id="imgInput" type="file" accept="image/*" style="display:none"/>
   </div>
   <div class="row" id="mileageRow" style="margin-top:8px;display:none;">
+    <div style="flex:0 0 56px"><label id="lblCompanyFee"></label><input id="companyFee" type="number" min="0" max="100" step="1" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="number" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblEndMi"></label><input id="ownEndMi" type="number" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblWeekMi"></label><div id="weekMiDisplay" class="mi-display">0</div></div>
@@ -288,13 +291,13 @@ function toggleTheme(){ const nx = currentTheme==='dark'?'light':'dark'; applyTh
 let lang = 'ka';
 const T = {
   ka:{ title:"გადაზიდვის ტრეკერი", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
-    myShare:"ჩემი წილი:", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
+    myShare:"ჩემი წილი:", companyFee:"კომპ. %", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
     syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
-    myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
+    myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
@@ -309,7 +312,7 @@ let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
 function setActiveCars(arr){ if(appMode==='owner') carsOwner=arr; else carsDriver=arr; }
 function saveActiveCars(){ return appMode==='owner' ? saveCarsOwner() : saveCarsDriver(); }
-let settings = { share: 33 };
+let settings = { share: 33, companyFee: '' };
 let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
@@ -376,7 +379,7 @@ function subscribeCloud(){
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
         store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-        document.getElementById('share').value=settings.share; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+        document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
@@ -388,7 +391,7 @@ function subscribeCloud(){
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
       store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-      document.getElementById('share').value=settings.share; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+      document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -439,6 +442,7 @@ function applyStaticLabels(){
   document.getElementById('dayNext').title = t('nextDay');
   document.getElementById('add').textContent = t('add');
   document.getElementById('lblShare').textContent = t('myShare');
+  document.getElementById('lblCompanyFee').textContent = t('companyFee');
   document.getElementById('tab-week').textContent = t('byWeek');
   document.getElementById('tab-month').textContent = t('byMonth');
   document.getElementById('tab-all').textContent = t('all');
@@ -478,7 +482,7 @@ async function load(){
   carsOwner = carsOwner.filter(c=>valid(c.date));
   applyStaticLabels();
   populateCats();
-  document.getElementById('share').value=settings.share;
+  document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||'';
   document.getElementById('date').value=todayStr();
   document.getElementById('expDate').value=todayStr();
   applyMode();
@@ -677,6 +681,7 @@ function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
+document.getElementById('companyFee').addEventListener('input', e=>{ const v=e.target.value; settings.companyFee = v===''?'':parseFloat(v); saveSettings(); render(); });
 
 // --- კვირებზე გადაფურცვლა (swipe) ---
 (function(){
@@ -746,7 +751,7 @@ function populateCats(){
   const addPart = addingCat
     ? `<input id="newCatInput" type="text" class="cat-add-input" placeholder="${esc(t('addCustomCat'))}"
         onkeydown="if(event.key==='Enter'){submitNewCat();} else if(event.key==='Escape'){cancelAddCat();}"
-        onblur="cancelAddCat()">`
+        onblur="submitNewCat()">`
     : `<button type="button" class="cat-chip cat-add" onclick="startAddCat()" title="${t('addCustomCat')}">+</button>`;
   row.innerHTML = baseChips + custChips + tempChip + addPart;
   if(addingCat){ const el=document.getElementById('newCatInput'); if(el){ el.focus(); } }
@@ -762,6 +767,7 @@ function pickCat(c){ selectedCat=c; populateCats(); }
 function startAddCat(){ addingCat=true; populateCats(); }
 function cancelAddCat(){ if(!addingCat) return; addingCat=false; populateCats(); }
 function submitNewCat(){
+  if(!addingCat) return;
   const el=document.getElementById('newCatInput'); const val=el?el.value:'';
   addingCat=false;
   const trimmed=val.trim();
@@ -774,6 +780,7 @@ function submitNewCat(){
 function changeExpDate(delta){ const el=document.getElementById('expDate'); el.value=addDays(el.value||todayStr(),delta); }
 
 // --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
+function companyFeeAmt(g){ const pct=parseFloat(settings.companyFee); return (!isNaN(pct)&&pct>0) ? g*pct/100 : 0; }
 function weeklyMiles(mon){
   const r=weeklyMileage[mon];
   if(!r || r.start==null || r.end==null) return 0;
@@ -881,13 +888,15 @@ function renderDetail(){
   const exps = owner ? expenses.filter(e=>matchPeriod(e.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1) : [];
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
+  const feeAmt = owner ? companyFeeAmt(g) : 0;
 
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
       <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
+      ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eTotal)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-eTotal)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-eTotal)}</div></div>
     </div>`;
   } else {
     summary = `<div class="detail-summary">
@@ -904,10 +913,24 @@ function renderDetail(){
 
   let expSection='';
   if(owner){
-    const expTable = exps.length
-      ? `<table><thead><tr><th>${t('day')}</th><th>${t('expCat')}</th><th class="num">${t('expAmt')}</th></tr></thead><tbody>${
-          exps.map(e=>`<tr><td>${fmtDay(e.date)}</td><td>${esc(e.cat)}</td><td class="num" style="color:var(--del);font-weight:700">−${money(e.amount)}</td></tr>`).join('')}</tbody></table>`
-      : `<div class="detail-empty">${t('noEntries')}</div>`;
+    let expTable;
+    if(exps.length){
+      const byCat={}; exps.forEach(e=>{ (byCat[e.cat]=byCat[e.cat]||[]).push(e); });
+      const catKeys=Object.keys(byCat).sort((a,b)=>{
+        const ta=byCat[a].reduce((s,x)=>s+x.amount,0), tb=byCat[b].reduce((s,x)=>s+x.amount,0);
+        return tb-ta;
+      });
+      const rows=catKeys.map(cat=>{
+        const items=byCat[cat].sort((a,b)=>a.date<b.date?-1:1);
+        const tot=items.reduce((s,x)=>s+x.amount,0);
+        const header=`<tr class="cat-grp-row"><td>${esc(cat)}</td><td class="num" style="color:var(--del);font-weight:800">−${money(tot)}</td></tr>`;
+        const sub=items.map(e=>`<tr><td class="sub-cell">${fmtDay(e.date)}</td><td class="num" style="color:var(--del)">−${money(e.amount)}</td></tr>`).join('');
+        return header+sub;
+      }).join('');
+      expTable=`<table><thead><tr><th>${t('expCat')} / ${t('day')}</th><th class="num">${t('expAmt')}</th></tr></thead><tbody>${rows}</tbody></table>`;
+    } else {
+      expTable=`<div class="detail-empty">${t('noEntries')}</div>`;
+    }
     expSection = `<div class="detail-section-title">${t('totalExp')} (${exps.length})</div>${expTable}`;
   }
 
@@ -929,7 +952,7 @@ function ownerRenderStats(){
   const mk=anchorMonthFor([...carsOwner, ...expenses]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
   const esum=fn=>expenses.filter(fn).reduce((a,x)=>a+x.amount,0);
-  const card=(l,fn,desc)=>{ const g=gsum(fn), e=esum(fn); return {l,g,e,n:g-e,desc}; };
+  const card=(l,fn,desc)=>{ const g=gsum(fn), e=esum(fn), fee=companyFeeAmt(g); return {l,g,e,fee,n:g-fee-e,desc}; };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
     card(t('lastWeek'), c=>mondayOf(c.date)===lastWk, {k:'week',v:lastWk}),
@@ -943,7 +966,7 @@ function ownerRenderStats(){
     <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${t('totalExp')}: ${money(o.e)}</div>
+      <div class="cnt">${t('totalExp')}: ${money(o.e)}${o.fee>0?' · '+t('companyFee')+' −'+money(o.fee):''}</div>
     </div>`).join('');
 }
 function ownerWeekColumn(mon, collapsed){
@@ -952,7 +975,8 @@ function ownerWeekColumn(mon, collapsed){
   const g=loads.reduce((a,x)=>a+x.price,0);
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
-  const net=g-eTotal;
+  const fee=companyFeeAmt(g);
+  const net=g-fee-eTotal;
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
@@ -999,6 +1023,7 @@ function ownerWeekColumn(mon, collapsed){
     <div class="week-body">${body}</div>
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
+      ${fee>0?`<div>${t('companyFee')}: <b>−${money(fee)}</b></div>`:''}
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
@@ -1029,7 +1054,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e)}</td><td class="num share-col">${money(m.g-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmt(m.g); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee)}</td><td class="num share-col">${money(m.g-fee-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
