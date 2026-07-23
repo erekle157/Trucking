@@ -59,6 +59,8 @@
   .day-content-col { flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
   .day-content-col .exp-item { padding:5px 8px; font-size:12px; }
   .day-content-col .exp-item span:first-child { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
+  .day-content-col .exp-item .exp-amt { font-size:11px; }
+  .day-content-col .exp-item .del { flex:0 0 auto; padding:2px 3px; font-size:12px; }
   .mi-display { padding:9px 8px; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); font-size:15px; font-weight:700; text-align:center; color:var(--accent); }
   .wk-catbreak { color:var(--muted2); font-size:10px; margin-top:2px; }
   .cat-row { display:flex; flex-wrap:nowrap; overflow-x:auto; gap:6px; margin-bottom:8px; -webkit-overflow-scrolling:touch; }
@@ -147,7 +149,7 @@
   .rowday { color:var(--sub); }
   .share-col { color:var(--accent); font-weight:600; }
   .del { background:none; color:var(--del); padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
-  .udbar { position:fixed; right:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1200; }
+  .udbar { position:fixed; left:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1200; }
   .udbtn { width:46px; height:46px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text);
     font-size:20px; cursor:pointer; box-shadow:0 2px 8px var(--shadow); display:flex; align-items:center; justify-content:center; }
   .udbtn:disabled { opacity:.35; cursor:default; }
@@ -159,6 +161,12 @@
   .stat-enter { flex:0 0 auto; background:var(--chip); color:var(--accent); border:none; border-radius:7px; width:24px; height:24px; font-size:13px; font-weight:800; cursor:pointer; line-height:1; }
   .stat-enter:hover { background:var(--accent); color:#fff; }
   .maint-btn { flex:0 0 auto; white-space:nowrap; background:var(--accent); color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+  .action-sheet { position:fixed; inset:0; z-index:1500; display:flex; align-items:flex-end; justify-content:center; }
+  .action-sheet-bg { position:absolute; inset:0; background:rgba(0,0,0,.4); }
+  .action-sheet-box { position:relative; z-index:1; width:100%; max-width:460px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+  .as-btn { width:100%; padding:15px; border:none; border-radius:13px; font-size:16px; font-weight:700; cursor:pointer; background:var(--card); color:var(--text); box-shadow:0 2px 8px var(--shadow); }
+  .as-btn.as-del { color:var(--del); }
+  .as-btn.as-cancel { background:var(--chip); margin-top:4px; }
   .maint-btn:hover { filter:brightness(1.05); }
   .detail-page { position:fixed; inset:0; background:var(--bg); z-index:1000; overflow-y:auto; padding:14px; max-width:820px; margin:0 auto; }
   .detail-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; position:sticky; top:0; background:var(--bg); padding:4px 0; }
@@ -287,6 +295,14 @@
 
 <div id="detailPage" class="detail-page" style="display:none"></div>
 <div id="maintPage" class="detail-page" style="display:none"></div>
+<div id="actionSheet" class="action-sheet" style="display:none">
+  <div class="action-sheet-bg" onclick="closeActionSheet()"></div>
+  <div class="action-sheet-box">
+    <button class="as-btn as-edit" id="asEdit">✏️ <span id="asEditLbl"></span></button>
+    <button class="as-btn as-del" id="asDel">🗑 <span id="asDelLbl"></span></button>
+    <button class="as-btn as-cancel" id="asCancel" onclick="closeActionSheet()"></button>
+  </div>
+</div>
 
 <script>
 (function(){
@@ -503,7 +519,7 @@ function applyStaticLabels(){
   document.getElementById('freqWeek').textContent = t('weekWord');
   document.getElementById('freqMonth').textContent = t('monthWord');
 }
-function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); renderAuthBar(); render(); }
+function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); if(typeof updateCarAddBtn==='function') updateCarAddBtn(); renderAuthBar(); render(); }
 
 async function load(){
   try{ const r=await store.get('theme'); if(r==='dark'||r==='light') applyTheme(r);
@@ -566,6 +582,7 @@ function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); apply
 
 function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
 function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value){ eEl.value=dEl.value; } }
+let editingCarId=null;
 function addCar(){
   const priceEl=document.getElementById('price');
   const price=parseFloat(priceEl.value);
@@ -574,12 +591,38 @@ function addCar(){
   const route=document.getElementById('route').value.trim();
   const miles=parseFloat(document.getElementById('miles').value)||0;
   pushHistory();
-  activeCars().push({ id:Date.now()+''+Math.random(), price, date, route, miles });
+  if(editingCarId){
+    const arr=activeCars(); const c=arr.find(x=>x.id===editingCarId);
+    if(c){ c.price=price; c.date=date; c.route=route; c.miles=miles; }
+    editingCarId=null; updateCarAddBtn();
+  } else {
+    activeCars().push({ id:Date.now()+''+Math.random(), price, date, route, miles });
+  }
   priceEl.value=''; document.getElementById('route').value=''; document.getElementById('miles').value='';
   weekPage=0;
   saveActiveCars(); render(); priceEl.focus();
 }
-function delCar(id){ pushHistory(); setActiveCars(activeCars().filter(c=>c.id!==id)); saveActiveCars(); render(); }
+function editCar(id){
+  const c=activeCars().find(x=>x.id===id); if(!c) return;
+  editingCarId=id;
+  document.getElementById('price').value=c.price;
+  document.getElementById('date').value=c.date;
+  document.getElementById('route').value=c.route||'';
+  document.getElementById('miles').value=c.miles||'';
+  if(appMode==='owner'){ loadMileageInputs(); }
+  updateCarAddBtn();
+  window.scrollTo(0,0);
+  document.getElementById('price').focus();
+}
+function cancelEditCar(){
+  editingCarId=null;
+  document.getElementById('price').value=''; document.getElementById('route').value=''; document.getElementById('miles').value='';
+  updateCarAddBtn();
+}
+function updateCarAddBtn(){
+  const btn=document.getElementById('add'); if(btn) btn.textContent = editingCarId ? t('saveExp') : t('add');
+}
+function delCar(id){ pushHistory(); if(editingCarId===id) cancelEditCar(); setActiveCars(activeCars().filter(c=>c.id!==id)); saveActiveCars(); render(); }
 function setView(v){ view=v; if(v==='week') weekPage=0; ['week','month','all'].forEach(tt=>document.getElementById('tab-'+tt).classList.toggle('active',tt===v)); render(); }
 function navWeek(d){
   weekPage=Math.max(-8, weekPage+d);
@@ -665,7 +708,7 @@ function weekColumn(mon, collapsed){
     const daysC=[0,1,2,3,4,5,6].map(i=>addDays(mon,i));
     const bodyC = daysC.map(d=>{
         const items=byDayC[d]||[];
-        const chips=items.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+        const chips=items.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="askItemAction('car','${c.id}')" title="${t('del')}">✕</button></span>`).join('');
         return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices">${chips}</div></div>`;
       }).join('');
     return `<div class="week-col${cur}">${weekHead(mon, carsDriver, true)}
@@ -686,7 +729,7 @@ function weekColumn(mon, collapsed){
         const dmi=items.reduce((a,x)=>a+(x.miles||0),0);
         const chips=items.map(c=>{
           const meta=[routeStates(c.route), (c.miles? miFmt(c.miles)+' mi':'')].filter(Boolean).join(' · ');
-          return `<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`;
+          return `<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}${meta?' · '+esc(meta):''}</span><button onclick="askItemAction('car','${c.id}')" title="${t('del')}">✕</button></span>`;
         }).join('');
         const parts=[];
         if(items.length>1) parts.push('= '+money(dsum));
@@ -724,7 +767,7 @@ function renderContent(){
   if(view==='all'){
     const all=[...carsDriver].sort((a,b)=>a.date<b.date?1:-1);
     c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
-      all.map(x=>`<tr><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.route||'')}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
+      all.map(x=>`<tr><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.route||'')}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="askItemAction('car','${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
     return;
   }
   const groups={}; carsDriver.forEach(x=>{ const k=monthKey(x.date); (groups[k]=groups[k]||[]).push(x); });
@@ -734,7 +777,7 @@ function renderContent(){
     const list=groups[k].sort((a,b)=>a.date<b.date?-1:1);
     const g=list.reduce((a,x)=>a+x.price,0);
     html+=`<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)} · ${list.length} ${t('carsShort')}</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
-    list.forEach(x=>{ html+=`<tr><td class="rowday" style="padding-left:22px">${fmtDay(x.date)}${x.route?' · '+esc(x.route):''}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`; });
+    list.forEach(x=>{ html+=`<tr><td class="rowday" style="padding-left:22px">${fmtDay(x.date)}${x.route?' · '+esc(x.route):''}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="askItemAction('car','${x.id}')">${t('del')}</button></td></tr>`; });
   });
   html+=`</tbody></table>`; c.innerHTML=html;
 }
@@ -983,7 +1026,7 @@ function applyMode(){
   document.getElementById('mileageRow').style.display = owner ? '' : 'none';
   if(owner){ loadMileageInputs(); syncFixedExpUI(); syncCompanyFeeUI(); }
 }
-function setMode(m){ appMode=m; weekPage=0; if(typeof closeDetail==='function') closeDetail(); store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
+function setMode(m){ appMode=m; weekPage=0; if(typeof cancelEditCar==='function') cancelEditCar(); if(typeof closeDetail==='function') closeDetail(); store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
 let editingExpId = null;
 function addExpense(){
   const el=document.getElementById('expAmt'); const amt=parseFloat(el.value);
@@ -1075,7 +1118,7 @@ function openMaint(){
             <button class="daybtn" onclick="changeMaintDate(1)">▶</button>
           </div>
         </div>
-        <div style="flex:0 0 78px"><label>${t('milesLbl')}</label><input id="mMiles" type="number" inputmode="numeric"></div>
+        <div style="flex:0 0 78px"><label>odo</label><input id="mMiles" type="number" inputmode="numeric"></div>
       </div>
       <div class="row" style="margin-top:8px">
         <div style="flex:1 1 auto;min-width:0"><label>${t('maintDesc')}</label><input id="mDesc" type="text"></div>
@@ -1109,7 +1152,7 @@ function renderMaintTable(){
   if(q){ rows=rows.filter(x=>(x.desc||'').toLowerCase().includes(q) || (x.date||'').includes(q) || String(x.mileage||'').includes(q) || String(x.price||'').includes(q)); }
   if(!rows.length){ wrap.innerHTML=`<div class="detail-empty">${t('noEntries')}</div>`; return; }
   const total=rows.reduce((s,x)=>s+(x.price||0),0);
-  wrap.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">mi</th><th>${t('maintDesc')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
+  wrap.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">odo</th><th>${t('maintDesc')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
     rows.map(x=>{
       const action = (x.id===maintMenuId)
         ? `<div class="m-menu"><button class="m-menu-btn edit" onclick="editMaint('${x.id}')" title="${t('edit')}">✏️</button><button class="m-menu-btn del" onclick="confirmDelMaint('${x.id}')" title="${t('del')}">🗑</button><button class="m-menu-btn" onclick="closeMaintMenu()" title="${t('cancelEdit')}">↩</button></div>`
@@ -1160,11 +1203,36 @@ function addMaint(){
     maintenance.push({ id:Date.now()+''+Math.random(), date, mileage, desc, price });
   }
   document.getElementById('mPrice').value=''; document.getElementById('mMiles').value=''; document.getElementById('mDesc').value='';
-  saveMaint(); renderMaintTable();
+  saveMaint(); renderMaintTable(); render();
   document.getElementById('mDesc').focus();
 }
-function delMaint(id){ pushHistory(); maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); }
+function delMaint(id){ pushHistory(); maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); render(); }
+function openMaintEdit(id){ openMaint(); editMaint(id); }
 function changeMaintDate(delta){ const el=document.getElementById('mDate'); if(el) el.value=addDays(el.value||todayStr(),delta); }
+
+// --- ერთიანი მოქმედების ფურცელი (edit/delete) ---
+let asType=null, asId=null;
+function askItemAction(type, id){
+  asType=type; asId=id;
+  document.getElementById('asEditLbl').textContent=t('edit');
+  document.getElementById('asDelLbl').textContent=t('del');
+  document.getElementById('asCancel').textContent=t('cancelEdit');
+  const editBtn=document.getElementById('asEdit'), delBtn=document.getElementById('asDel');
+  editBtn.onclick=()=>{ const ty=asType, i=asId; closeActionSheet(); doItemEdit(ty,i); };
+  delBtn.onclick=()=>{ const ty=asType, i=asId; closeActionSheet(); doItemDelete(ty,i); };
+  document.getElementById('actionSheet').style.display='flex';
+}
+function closeActionSheet(){ document.getElementById('actionSheet').style.display='none'; asType=null; asId=null; }
+function doItemEdit(type,id){
+  if(type==='car') editCar(id);
+  else if(type==='exp') editExpense(id);
+  else if(type==='maint') openMaintEdit(id);
+}
+function doItemDelete(type,id){
+  if(type==='car') delCar(id);
+  else if(type==='exp') delExpense(id);
+  else if(type==='maint') delMaint(id);
+}
 
 function renderDetail(){
   if(!detailDesc) return;
@@ -1284,10 +1352,10 @@ function ownerWeekColumn(mon, collapsed){
     body = cDates.length
       ? cDates.map(d=>{
           const dl=loads.filter(c=>c.date===d), de=exps.filter(e=>e.date===d);
-          const posChips=dl.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
+          const posChips=dl.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="askItemAction('car','${c.id}')" title="${t('del')}">✕</button></span>`).join('');
           const negChips=de.map(e=> e.isMaint
-            ? `<span class="pchip neg"><span class="pc-txt" onclick="openMaint()" style="cursor:pointer">🔧 −${moneyc(e.amount)}</span></span>`
-            : `<span class="pchip neg"><span class="pc-txt" onclick="editExpense('${e.id}')" style="cursor:pointer">−${moneyc(e.amount)}</span><button onclick="delExpense('${e.id}')" title="${t('del')}">✕</button></span>`).join('');
+            ? `<span class="pchip neg"><span class="pc-txt" onclick="openMaintEdit('${e.id}')" style="cursor:pointer">🔧 −${moneyc(e.amount)}</span><button onclick="askItemAction('maint','${e.id}')" title="${t('del')}">✕</button></span>`
+            : `<span class="pchip neg"><span class="pc-txt" onclick="editExpense('${e.id}')" style="cursor:pointer">−${moneyc(e.amount)}</span><button onclick="askItemAction('exp','${e.id}')" title="${t('del')}">✕</button></span>`).join('');
           return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices split-lr"><div class="lr-col">${posChips}</div><div class="lr-col">${negChips}</div></div></div>`;
         }).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
@@ -1301,13 +1369,13 @@ function ownerWeekColumn(mon, collapsed){
       const loadsCol = rec.loads.length
         ? rec.loads.map(c=>{
             const meta=[routeStates(c.route), (c.miles? miFmt(c.miles)+' mi':'')].filter(Boolean).join(' · ');
-            return `<div class="exp-item"><span>${meta?esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="delCar('${c.id}')">✕</button></div>`;
+            return `<div class="exp-item"><span>${meta?esc(meta):''}</span><span class="exp-amt" style="color:var(--accent)">${moneyc(c.price)}</span><button class="del" onclick="askItemAction('car','${c.id}')">✕</button></div>`;
           }).join('')
         : '';
       const expCol = rec.exps.length
         ? rec.exps.map(e=> e.isMaint
-            ? `<div class="exp-item" onclick="openMaint()" style="cursor:pointer"><span>🔧 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`
-            : `<div class="exp-item"><span onclick="editExpense('${e.id}')" style="cursor:pointer">${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
+            ? `<div class="exp-item"><span onclick="openMaintEdit('${e.id}')" style="cursor:pointer">🔧 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="askItemAction('maint','${e.id}')">✕</button></div>`
+            : `<div class="exp-item"><span onclick="editExpense('${e.id}')" style="cursor:pointer">${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="askItemAction('exp','${e.id}')">✕</button></div>`).join('')
         : '';
       return `<div class="day-row-owner">
         <div class="day-label">${fmtDay(d,'weekday')}</div>
@@ -1365,7 +1433,7 @@ function ownerRenderContent(){
   if(!expenses.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
   const all=[...expenses].sort((a,b)=>a.date<b.date?1:-1);
   c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th>${t('expCat')}</th><th class="num">${t('expAmt')}</th><th></th></tr></thead><tbody>${
-    all.map(x=>`<tr style="cursor:pointer" onclick="editExpense('${x.id}')"><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.cat)}</td><td class="num">−${money(x.amount)}</td><td class="num"><button class="del" onclick="event.stopPropagation();delExpense('${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
+    all.map(x=>`<tr style="cursor:pointer" onclick="editExpense('${x.id}')"><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.cat)}</td><td class="num">−${money(x.amount)}</td><td class="num"><button class="del" onclick="event.stopPropagation();askItemAction('exp','${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
 }
 
 document.getElementById('expAdd').addEventListener('click', addExpense);
