@@ -1021,12 +1021,18 @@ function openMaint(){
     </div>
     <div class="card">
       <div class="row">
-        <div style="flex:1 1 130px;min-width:0"><label>${t('date')}</label><input id="mDate" type="date"></div>
-        <div style="flex:0 0 90px"><label>${t('milesLbl')}</label><input id="mMiles" type="number" inputmode="numeric"></div>
+        <div style="flex:1 1 auto;min-width:0"><label>${t('date')}</label>
+          <div class="date-row">
+            <button class="daybtn" onclick="changeMaintDate(-1)">◀</button>
+            <input id="mDate" type="date">
+            <button class="daybtn" onclick="changeMaintDate(1)">▶</button>
+          </div>
+        </div>
+        <div style="flex:0 0 78px"><label>${t('milesLbl')}</label><input id="mMiles" type="number" inputmode="numeric"></div>
       </div>
       <div class="row" style="margin-top:8px">
         <div style="flex:1 1 auto;min-width:0"><label>${t('maintDesc')}</label><input id="mDesc" type="text"></div>
-        <div style="flex:0 0 80px"><label>${t('priceCol')}</label><input id="mPrice" type="number" inputmode="decimal"></div>
+        <div style="flex:0 0 78px"><label>${t('priceCol')}</label><input id="mPrice" type="number" inputmode="decimal"></div>
       </div>
       <div class="row" style="margin-top:8px">
         <button class="add" style="flex:1 1 auto" onclick="addMaint()">${t('add')}</button>
@@ -1064,6 +1070,7 @@ function addMaint(){
   document.getElementById('mDesc').focus();
 }
 function delMaint(id){ maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); }
+function changeMaintDate(delta){ const el=document.getElementById('mDate'); if(el) el.value=addDays(el.value||todayStr(),delta); }
 
 function renderDetail(){
   if(!detailDesc) return;
