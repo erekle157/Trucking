@@ -910,6 +910,11 @@ function commitFixed(kind){
   saveSettings(); renderFixedChips(); render();
 }
 let fxEntryEdit=null;
+function openFixedChip(kind){
+  const card=document.getElementById('expCard');
+  if(card) card.scrollIntoView({behavior:'smooth', block:'center'});
+  editFixed(kind);
+}
 function editFixedEntry(kind, pkey){
   fxEntryEdit={kind, pkey};
   render();
@@ -926,16 +931,17 @@ function commitFixedEntry(val){
   saveSettings(); render();
 }
 function fixedEntryHTML(e, variant){
-  const editing = fxEntryEdit && fxEntryEdit.kind===e.fkind && fxEntryEdit.pkey===e.pkey;
+  const editing = fxEntryEdit && fxEntryEdit.kind===e.fkind && fxEntryEdit.pkey===e.pkey && e.fkind!=='mile';
+  const click = e.fkind==='mile' ? `openFixedChip('mile')` : `editFixedEntry('${e.fkind}','${e.pkey}')`;
   const inp = `<input id="fxEntryInput" class="fx-entry-input" type="number" inputmode="decimal" value="${e.amount}" onkeydown="if(event.key==='Enter'){commitFixedEntry(this.value)}else if(event.key==='Escape'){fxEntryEdit=null;render()}" onblur="commitFixedEntry(this.value)">`;
   if(variant==='chip'){
     return editing
       ? `<span class="pchip neg fixed-chip">${inp}</span>`
-      : `<span class="pchip neg fixed-chip"><span class="pc-txt" onclick="editFixedEntry('${e.fkind}','${e.pkey}')" style="cursor:pointer">🔒 −${moneyc(e.amount)}</span></span>`;
+      : `<span class="pchip neg fixed-chip"><span class="pc-txt" onclick="${click}" style="cursor:pointer">🔒 −${moneyc(e.amount)}</span></span>`;
   }
   return editing
     ? `<div class="exp-item fixed-item"><span>🔒 ${esc(e.cat)}</span><span class="exp-amt">${inp}</span></div>`
-    : `<div class="exp-item fixed-item"><span onclick="editFixedEntry('${e.fkind}','${e.pkey}')" style="cursor:pointer">🔒 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`;
+    : `<div class="exp-item fixed-item"><span onclick="${click}" style="cursor:pointer">🔒 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`;
 }
 function saveFixedExpWeek(){ /* legacy no-op */ }
 function saveFixedExpMonth(){ /* legacy no-op */ }
@@ -988,21 +994,33 @@ function fixedAmountForMonth(bk){
   const h=historyLatestAt(settings.fixedMonthHistory, bk+'-31');
   return h?h.amount:0;
 }
+function lastSundayOfMonth(mk){
+  const p=mk.split('-'); const d=new Date(parseInt(p[0]), parseInt(p[1]), 0);
+  while(d.getDay()!==0) d.setDate(d.getDate()-1);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
 function fixedAsExp(){
   const list=[];
-  const allDates=[]; carsOwner.forEach(c=>allDates.push(c.date)); expenses.forEach(e=>allDates.push(e.date));
-  if(!allDates.length) return list;
-  const weekSeen=new Map();
-  allDates.forEach(d=>{ const bk=mondayOf(d); const cur=weekSeen.get(bk); if(!cur || d<cur) weekSeen.set(bk, d); });
-  weekSeen.forEach((exDate, bk)=>{
-    const amt=fixedAmountForWeek(bk);
-    if(amt>0){ list.push({ id:'fx-w-'+bk, date:exDate, cat:t('fixedExpLbl')+' ('+t('weekWord')+')', amount:amt, isFixed:true, fkind:'week', pkey:bk }); }
+  const actWeeks=new Set(), actMonths=new Set();
+  carsOwner.forEach(c=>{ actWeeks.add(mondayOf(c.date)); actMonths.add(monthKey(c.date)); });
+  expenses.forEach(e=>{ actWeeks.add(mondayOf(e.date)); actMonths.add(monthKey(e.date)); });
+  const miWeeks=new Set();
+  Object.keys(weeklyMileage).forEach(mon=>{ const r=weeklyMileage[mon]; if(r && r.start!=null && r.end!=null) miWeeks.add(mon); });
+  const weeks=new Set([...actWeeks, ...miWeeks]);
+  weeks.forEach(bk=>{
+    const sun=addDays(bk,6); // ფიქს.ხარჯი ყოველთვის კვირა დღეს (Sunday)
+    if(actWeeks.has(bk)){
+      const w=fixedAmountForWeek(bk);
+      if(w>0) list.push({ id:'fx-w-'+bk, date:sun, cat:t('fixedExpLbl')+' ('+t('weekWord')+')', amount:w, isFixed:true, fkind:'week', pkey:bk });
+    }
+    if(miWeeks.has(bk)){
+      const mi=Math.max(0, weeklyMiles(bk))*perMileRateFor(sun);
+      if(mi>0) list.push({ id:'fx-pm-'+bk, date:sun, cat:'$/m', amount:mi, isFixed:true, fkind:'mile', pkey:bk });
+    }
   });
-  const monthSeen=new Map();
-  allDates.forEach(d=>{ const bk=monthKey(d); const cur=monthSeen.get(bk); if(!cur || d<cur) monthSeen.set(bk, d); });
-  monthSeen.forEach((exDate, bk)=>{
-    const amt=fixedAmountForMonth(bk);
-    if(amt>0){ list.push({ id:'fx-m-'+bk, date:exDate, cat:t('fixedExpLbl')+' ('+t('monthWord')+')', amount:amt, isFixed:true, fkind:'month', pkey:bk }); }
+  actMonths.forEach(bk=>{
+    const m=fixedAmountForMonth(bk);
+    if(m>0) list.push({ id:'fx-m-'+bk, date:lastSundayOfMonth(bk), cat:t('fixedExpLbl')+' ('+t('monthWord')+')', amount:m, isFixed:true, fkind:'month', pkey:bk });
   });
   return list;
 }
@@ -1301,7 +1319,6 @@ function renderDetail(){
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
   const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
-  const pmAmt = owner ? perMileCostFor(detailDesc) : 0;
   const fixedTotal = owner ? exps.filter(e=>e.isFixed).reduce((a,x)=>a+x.amount,0) : 0;
   const eNonFixed = eTotal - fixedTotal;
   let summary;
@@ -1309,10 +1326,9 @@ function renderDetail(){
     summary = `<div class="detail-summary">
       <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
       ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
-      ${pmAmt>0?`<div class="detail-sum-box"><div class="lbl">$/m</div><div class="val" style="color:var(--del)">−${money(pmAmt)}</div></div>`:''}
       ${fixedTotal>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedTotal)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eNonFixed)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-pmAmt-eTotal)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-eTotal)}</div></div>
     </div>`;
   } else {
     summary = `<div class="detail-summary">
@@ -1385,8 +1401,7 @@ function ownerRenderStats(){
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
     const mi=periodMiles(desc);
-    const pm=perMileCostFor(desc);
-    return {l,g,e,fee,pm,mi,n:g-fee-e-pm,desc};
+    return {l,g,e,fee,mi,n:g-fee-e,desc};
   };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
@@ -1401,7 +1416,7 @@ function ownerRenderStats(){
     <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.pm)}</div>
+      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee)}</div>
       ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
@@ -1412,8 +1427,7 @@ function ownerWeekColumn(mon, collapsed){
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
   const fee=companyFeeAmtForLoads(loads);
-  const pmAmt=perMileCostFor({k:'week',v:mon});
-  const net=g-fee-eTotal-pmAmt;
+  const net=g-fee-eTotal;
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
@@ -1469,7 +1483,6 @@ function ownerWeekColumn(mon, collapsed){
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
       ${fee>0?`<div>${t('companyFee')}: <b>−${money(fee)}</b></div>`:''}
-      ${pmAmt>0?`<div>$/m: <b>−${money(pmAmt)}</b></div>`:''}
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
@@ -1500,7 +1513,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const pm=perMileCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+pm)}</td><td class="num share-col">${money(m.g-fee-pm-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee)}</td><td class="num share-col">${money(m.g-fee-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
