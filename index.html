@@ -999,6 +999,14 @@ function lastSundayOfMonth(mk){
   while(d.getDay()!==0) d.setDate(d.getDate()-1);
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
+function lastDayOfMonth(mk){
+  const p=mk.split('-'); const d=new Date(parseInt(p[0]), parseInt(p[1]), 0);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function fixedWeekDate(bk){
+  const sun=addDays(bk,6); const end=lastDayOfMonth(monthKey(bk));
+  return sun<=end ? sun : end; // კვირა დღე, ოღონდ თვის საზღვარს არ გადააბიჯოს
+}
 function fixedAsExp(){
   const list=[];
   const actWeeks=new Set(), actMonths=new Set();
@@ -1008,14 +1016,14 @@ function fixedAsExp(){
   Object.keys(weeklyMileage).forEach(mon=>{ const r=weeklyMileage[mon]; if(r && r.start!=null && r.end!=null) miWeeks.add(mon); });
   const weeks=new Set([...actWeeks, ...miWeeks]);
   weeks.forEach(bk=>{
-    const sun=addDays(bk,6); // ფიქს.ხარჯი ყოველთვის კვირა დღეს (Sunday)
+    const dt=fixedWeekDate(bk);
     if(actWeeks.has(bk)){
       const w=fixedAmountForWeek(bk);
-      if(w>0) list.push({ id:'fx-w-'+bk, date:sun, cat:t('fixedExpLbl')+' ('+t('weekWord')+')', amount:w, isFixed:true, fkind:'week', pkey:bk });
+      if(w>0) list.push({ id:'fx-w-'+bk, date:dt, cat:t('fixedExpLbl')+' ('+t('weekWord')+')', amount:w, isFixed:true, fkind:'week', pkey:bk });
     }
     if(miWeeks.has(bk)){
-      const mi=Math.max(0, weeklyMiles(bk))*perMileRateFor(sun);
-      if(mi>0) list.push({ id:'fx-pm-'+bk, date:sun, cat:'$/m', amount:mi, isFixed:true, fkind:'mile', pkey:bk });
+      const mi=Math.max(0, weeklyMiles(bk))*perMileRateFor(addDays(bk,6));
+      if(mi>0) list.push({ id:'fx-pm-'+bk, date:dt, cat:'$/m', amount:mi, isFixed:true, fkind:'mile', pkey:bk });
     }
   });
   actMonths.forEach(bk=>{
