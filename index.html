@@ -34,7 +34,7 @@
   h1 { font-size:16px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
   .modesw-mini { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; flex:0 0 auto; }
   .freq-sw { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; height:38px; }
-  .freq-sw button { background:var(--card); color:var(--muted); border:none; padding:0 8px; font-size:11px; font-weight:700; cursor:pointer; }
+  .freq-sw button { background:var(--card); color:var(--muted); border:none; padding:0 6px; font-size:10px; font-weight:700; cursor:pointer; }
   .freq-sw button.active { background:var(--accent); color:#fff; }
   .modesw-mini button { background:var(--card); color:var(--muted); border:none; padding:5px 9px; font-size:15px; cursor:pointer; line-height:1; }
   .modesw-mini button.active { background:var(--tab-active-bg); }
@@ -241,7 +241,7 @@
         <button class="daybtn" onclick="changeExpDate(1)">▶</button>
       </div>
     </div>
-    <div style="flex:0 0 64px"><label id="lblFixedExp" style="white-space:nowrap;font-size:9.5px"></label><input id="fixedExp" type="number" inputmode="decimal"/></div>
+    <div style="flex:0 0 48px"><label id="lblFixedExp" style="white-space:nowrap;font-size:9.5px"></label><input id="fixedExp" type="number" inputmode="decimal" style="padding:9px 6px"/></div>
     <div style="flex:0 0 auto"><label>&nbsp;</label>
       <div class="freq-sw">
         <button type="button" id="freqWeek" class="active" onclick="setFixedFreq('week')"></button>
@@ -326,13 +326,13 @@ let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
 function setActiveCars(arr){ if(appMode==='owner') carsOwner=arr; else carsDriver=arr; }
 function saveActiveCars(){ return appMode==='owner' ? saveCarsOwner() : saveCarsDriver(); }
-let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week' };
+let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week', companyFeeHistory: [], fixedExpHistory: [] };
 let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
 let expenses = [];
 let weeklyMileage = {};
-let EXP_CATS = ['Fuel','DEF','Ez-pass','Maintenance'];
+let EXP_CATS = ['Fuel','DEF','Toll','Maintenance'];
 let customCats = [];
 const hasStore = typeof window !== 'undefined' && window.storage;
 
@@ -387,25 +387,25 @@ function subscribeCloud(){
       firstSnap=false;
       if(d && ((Array.isArray(d.cars)&&d.cars.length) || (Array.isArray(d.carsOwner)&&d.carsOwner.length) || (Array.isArray(d.expenses)&&d.expenses.length))){
         if(Array.isArray(d.cars)) carsDriver=d.cars; if(Array.isArray(d.carsOwner)) carsOwner=d.carsOwner;
-        if(d.settings) settings=d.settings; if(Array.isArray(d.expenses)) expenses=d.expenses;
+        if(d.settings){ settings=d.settings; normalizeSettings(); } if(Array.isArray(d.expenses)) expenses=d.expenses;
         if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
         if(Array.isArray(d.customCats)) customCats=d.customCats;
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
         store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-        document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+        document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
       if(Array.isArray(d.carsOwner)) carsOwner=d.carsOwner;
-      if(d.settings) settings=d.settings;
+      if(d.settings){ settings=d.settings; normalizeSettings(); }
       if(Array.isArray(d.expenses)) expenses=d.expenses;
       if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
       if(Array.isArray(d.customCats)) customCats=d.customCats;
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
       store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-      document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+      document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -489,6 +489,7 @@ async function load(){
   try{ const r=await store.get('cars'); if(r) carsDriver=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('carsOwner'); if(r) carsOwner=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('settings'); if(r) settings=JSON.parse(r); }catch(e){}
+  normalizeSettings();
   try{ const r=await store.get('expenses'); if(r) expenses=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('customCats'); if(r) customCats=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('weeklyMileage'); if(r) weeklyMileage=JSON.parse(r); }catch(e){}
@@ -499,7 +500,7 @@ async function load(){
   carsOwner = carsOwner.filter(c=>valid(c.date));
   applyStaticLabels();
   populateCats();
-  document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||'';
+  document.getElementById('share').value=settings.share; syncCompanyFeeUI();
   document.getElementById('date').value=todayStr();
   document.getElementById('expDate').value=todayStr();
   applyMode();
@@ -698,7 +699,16 @@ function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
-document.getElementById('companyFee').addEventListener('input', e=>{ const v=e.target.value; settings.companyFee = v===''?'':parseFloat(v); saveSettings(); render(); });
+document.getElementById('companyFee').addEventListener('change', e=>{
+  const v=e.target.value; const val=v===''?null:parseFloat(v);
+  settings.companyFee = v===''?'':val;
+  if(val!=null && !isNaN(val)){
+    const today=todayStr();
+    const existing=settings.companyFeeHistory.find(h=>h.date===today);
+    if(existing) existing.value=val; else settings.companyFeeHistory.push({date:today, value:val});
+  }
+  saveSettings(); render();
+});
 
 // --- კვირებზე გადაფურცვლა (swipe) ---
 (function(){
@@ -800,19 +810,38 @@ function submitNewCat(){
 }
 function changeExpDate(delta){ const el=document.getElementById('expDate'); el.value=addDays(el.value||todayStr(),delta); }
 function syncFixedExpUI(){
-  const el=document.getElementById('fixedExp'); if(el) el.value = (settings.fixedExpAmt!==''&&settings.fixedExpAmt!=null) ? settings.fixedExpAmt : '';
-  const freq = settings.fixedExpFreq||'week';
+  const today=todayStr();
+  const cur=historyLatestAt(settings.fixedExpHistory, today);
+  const el=document.getElementById('fixedExp'); if(el) el.value = cur ? cur.amount : '';
+  const freq = cur ? cur.freq : (settings.fixedExpFreq||'week');
   const wBtn=document.getElementById('freqWeek'), mBtn=document.getElementById('freqMonth');
   if(wBtn) wBtn.classList.toggle('active', freq==='week');
   if(mBtn) mBtn.classList.toggle('active', freq==='month');
 }
+function currentFixedFreq(){
+  const cur=historyLatestAt(settings.fixedExpHistory, todayStr());
+  return cur ? cur.freq : (settings.fixedExpFreq||'week');
+}
 function saveFixedExp(){
   const val=document.getElementById('fixedExp').value;
-  settings.fixedExpAmt = val===''?'':parseFloat(val);
+  const amt = val===''?0:parseFloat(val);
+  const today=todayStr();
+  const freq=currentFixedFreq();
+  const existing=settings.fixedExpHistory.find(h=>h.date===today);
+  if(existing){ existing.amount=amt; existing.freq=freq; }
+  else settings.fixedExpHistory.push({date:today, amount:amt, freq});
+  settings.fixedExpAmt = val===''?'':amt;
   saveSettings(); render();
 }
 function setFixedFreq(f){
-  settings.fixedExpFreq=f; syncFixedExpUI(); saveSettings(); render();
+  const val=document.getElementById('fixedExp').value;
+  const amt = val===''?0:parseFloat(val);
+  const today=todayStr();
+  const existing=settings.fixedExpHistory.find(h=>h.date===today);
+  if(existing){ existing.freq=f; existing.amount=amt; }
+  else settings.fixedExpHistory.push({date:today, amount:amt, freq:f});
+  settings.fixedExpFreq=f;
+  syncFixedExpUI(); saveSettings(); render();
 }
 function weeksInMonth(mk){
   const first=new Date(mk+'-01T00:00:00');
@@ -821,23 +850,52 @@ function weeksInMonth(mk){
   while(day<next){ if(day.getDay()===1) count++; day.setDate(day.getDate()+1); }
   return count;
 }
+function fixedExpSettingFor(dateStr){
+  return historyLatestAt(settings.fixedExpHistory, dateStr);
+}
 function fixedCostFor(desc){
-  const amt=parseFloat(settings.fixedExpAmt); if(isNaN(amt)||amt<=0) return 0;
-  const freq=settings.fixedExpFreq||'week';
-  if(desc.k==='week' && freq!=='week') return 0;
   const dates=[]; carsOwner.forEach(c=>{ if(matchPeriod(c.date, desc)) dates.push(c.date); }); expenses.forEach(e=>{ if(matchPeriod(e.date, desc)) dates.push(e.date); });
   if(!dates.length) return 0;
-  if(freq==='week'){
-    const weeks=new Set(dates.map(d=>mondayOf(d)));
-    return amt*weeks.size;
-  } else {
-    const months=new Set(dates.map(d=>monthKey(d)));
-    return amt*months.size;
-  }
+  const seen=new Map();
+  dates.forEach(d=>{
+    const setting=fixedExpSettingFor(d);
+    if(!setting || !setting.amount) return;
+    if(desc.k==='week' && setting.freq!=='week') return;
+    const bucketKey=(setting.freq==='month' ? monthKey(d) : mondayOf(d));
+    const key=setting.freq+':'+bucketKey;
+    if(!seen.has(key)) seen.set(key, setting.amount);
+  });
+  let total=0; seen.forEach(v=>total+=v);
+  return total;
 }
 
 // --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
-function companyFeeAmt(g){ const pct=parseFloat(settings.companyFee); return (!isNaN(pct)&&pct>0) ? g*pct/100 : 0; }
+function normalizeSettings(){
+  if(!Array.isArray(settings.companyFeeHistory)) settings.companyFeeHistory=[];
+  if(!Array.isArray(settings.fixedExpHistory)) settings.fixedExpHistory=[];
+  if(settings.companyFeeHistory.length===0 && settings.companyFee!=='' && settings.companyFee!=null && !isNaN(parseFloat(settings.companyFee))){
+    settings.companyFeeHistory.push({date:'2000-01-01', value:parseFloat(settings.companyFee)});
+  }
+  if(settings.fixedExpHistory.length===0 && settings.fixedExpAmt!=='' && settings.fixedExpAmt!=null && !isNaN(parseFloat(settings.fixedExpAmt))){
+    settings.fixedExpHistory.push({date:'2000-01-01', amount:parseFloat(settings.fixedExpAmt), freq:settings.fixedExpFreq||'week'});
+  }
+}
+function historyLatestAt(history, dateStr){
+  let best=null;
+  (history||[]).forEach(h=>{ if(h.date<=dateStr && (!best || h.date>best.date)) best=h; });
+  return best;
+}
+function companyFeeRateFor(dateStr){
+  const h=historyLatestAt(settings.companyFeeHistory, dateStr);
+  return h ? h.value : 0;
+}
+function syncCompanyFeeUI(){
+  const cur=historyLatestAt(settings.companyFeeHistory, todayStr());
+  const el=document.getElementById('companyFee'); if(el) el.value = cur ? cur.value : '';
+}
+function companyFeeAmtForLoads(loadsArr){
+  return (loadsArr||[]).reduce((sum,c)=>{ const rate=companyFeeRateFor(c.date); return sum + (rate>0 ? c.price*rate/100 : 0); }, 0);
+}
 function weeklyMiles(mon){
   const r=weeklyMileage[mon];
   if(!r || r.start==null || r.end==null) return 0;
@@ -850,7 +908,12 @@ function updateWeekMiDisplay(){
 }
 function loadMileageInputs(){
   const k=mondayOf(selDate()); const r=weeklyMileage[k]||{};
-  document.getElementById('ownStartMi').value = (r.start!=null) ? r.start : '';
+  let startVal = r.start;
+  if(startVal==null){
+    const prevK=addDays(k,-7); const prevR=weeklyMileage[prevK];
+    if(prevR && prevR.end!=null) startVal=prevR.end;
+  }
+  document.getElementById('ownStartMi').value = (startVal!=null) ? startVal : '';
   document.getElementById('ownEndMi').value = (r.end!=null) ? r.end : '';
   updateWeekMiDisplay();
 }
@@ -871,7 +934,7 @@ function applyMode(){
   document.getElementById('shareRow').style.display = owner ? 'none' : '';
   document.getElementById('routeRow').style.display = owner ? 'none' : '';
   document.getElementById('mileageRow').style.display = owner ? '' : 'none';
-  if(owner){ loadMileageInputs(); syncFixedExpUI(); }
+  if(owner){ loadMileageInputs(); syncFixedExpUI(); syncCompanyFeeUI(); }
 }
 function setMode(m){ appMode=m; weekPage=0; if(typeof closeDetail==='function') closeDetail(); store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
 let editingExpId = null;
@@ -945,7 +1008,7 @@ function renderDetail(){
   const exps = owner ? expenses.filter(e=>matchPeriod(e.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1) : [];
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
-  const feeAmt = owner ? companyFeeAmt(g) : 0;
+  const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
   const fixedAmt = owner && (loads.length>0 || exps.length>0) ? fixedCostFor(detailDesc) : 0;
 
   let summary;
@@ -1016,7 +1079,7 @@ function ownerRenderStats(){
   const card=(l,fn,desc)=>{
     const gArr=carsOwner.filter(fn), eArr=expenses.filter(fn);
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
-    const fee=companyFeeAmt(g);
+    const fee=companyFeeAmtForLoads(gArr);
     const hasInfo=gArr.length>0 || eArr.length>0;
     const fx=hasInfo?fixedCostFor(desc):0;
     return {l,g,e,fee,fx,n:g-fee-e-fx,desc};
@@ -1043,7 +1106,7 @@ function ownerWeekColumn(mon, collapsed){
   const g=loads.reduce((a,x)=>a+x.price,0);
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
-  const fee=companyFeeAmt(g);
+  const fee=companyFeeAmtForLoads(loads);
   const fixedAmt=(loads.length>0 || exps.length>0) ? fixedCostFor({k:'week',v:mon}) : 0;
   const net=g-fee-eTotal-fixedAmt;
   const cur=(mon===mondayOf(selDate()))?' current':'';
@@ -1119,12 +1182,12 @@ function ownerRenderContent(){
   }
   if(view==='month'){
     const months={};
-    carsOwner.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0}).g+=x.price; });
-    expenses.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0}).e+=x.amount; });
+    carsOwner.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0,loads:[]}).g+=x.price; months[k].loads.push(x); });
+    expenses.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0,loads:[]}).e+=x.amount; });
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmt(m.g); const fx=fixedCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx)}</td><td class="num share-col">${money(m.g-fee-fx-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const fx=fixedCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx)}</td><td class="num share-col">${money(m.g-fee-fx-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
