@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="გადაზიდვა">
-<title>გადაზიდვის ტრეკერი</title>
+<title>4Truckers</title>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -169,8 +169,12 @@
   .detail-page th.num, .detail-page td.num { text-align:right; }
   .detail-page td { padding:8px; border-top:1px solid var(--row-line); font-size:13px; }
   .detail-empty { color:var(--muted2); font-size:13px; padding:10px; text-align:center; }
-  .detail-page .cat-grp-row td { font-weight:800; border-top:2px solid var(--border); background:var(--card); }
-  .detail-page .sub-cell { padding-left:22px; color:var(--muted); }
+  .cat-group-row { display:flex; flex-wrap:wrap; gap:10px; align-items:flex-start; }
+  .cat-group { flex:1 1 150px; min-width:150px; margin-bottom:0; background:var(--card); border-radius:11px; overflow:hidden; }
+  .cat-group-head { display:flex; justify-content:space-between; padding:9px 12px; font-weight:800; font-size:14px; background:var(--row-line); }
+  .cat-group-items { display:flex; flex-direction:column; }
+  .cat-group-line { display:flex; justify-content:space-between; padding:8px 12px; font-size:13px; color:var(--muted); border-top:1px solid var(--row-line); }
+  .cat-group-line:first-child { border-top:none; }
 </style>
 </head><body>
 
@@ -261,7 +265,7 @@
 (function(){
   var icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' rx='104' fill='%232fa36b'/%3E%3Ctext x='50%25' y='55%25' font-size='300' text-anchor='middle' dominant-baseline='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E";
   try{
-    var manifest={name:"გადაზიდვის ტრეკერი",short_name:"გადაზიდვა",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#f4f5f7",theme_color:"#2fa36b",icons:[{src:icon,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
+    var manifest={name:"4Truckers",short_name:"4Truckers",start_url:".",scope:".",display:"standalone",orientation:"portrait",background_color:"#f4f5f7",theme_color:"#2fa36b",icons:[{src:icon,sizes:"512x512",type:"image/svg+xml",purpose:"any maskable"}]};
     var blob=new Blob([JSON.stringify(manifest)],{type:"application/manifest+json"});
     var l=document.createElement("link"); l.rel="manifest"; l.href=URL.createObjectURL(blob); document.head.appendChild(l);
     var al=document.createElement("link"); al.rel="apple-touch-icon"; al.href=icon; document.head.appendChild(al);
@@ -290,13 +294,13 @@ function toggleTheme(){ const nx = currentTheme==='dark'?'light':'dark'; applyTh
 // ---- ენა / language ----
 let lang = 'ka';
 const T = {
-  ka:{ title:"გადაზიდვის ტრეკერი", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
+  ka:{ title:"4Truckers", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
     myShare:"ჩემი წილი:", companyFee:"კომპ. %", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
     syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან" },
-  en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
+  en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
@@ -920,14 +924,16 @@ function renderDetail(){
         const ta=byCat[a].reduce((s,x)=>s+x.amount,0), tb=byCat[b].reduce((s,x)=>s+x.amount,0);
         return tb-ta;
       });
-      const rows=catKeys.map(cat=>{
+      const groups=catKeys.map(cat=>{
         const items=byCat[cat].sort((a,b)=>a.date<b.date?-1:1);
         const tot=items.reduce((s,x)=>s+x.amount,0);
-        const header=`<tr class="cat-grp-row"><td>${esc(cat)}</td><td class="num" style="color:var(--del);font-weight:800">−${money(tot)}</td></tr>`;
-        const sub=items.map(e=>`<tr><td class="sub-cell">${fmtDay(e.date)}</td><td class="num" style="color:var(--del)">−${money(e.amount)}</td></tr>`).join('');
-        return header+sub;
+        const lines=items.map(e=>`<div class="cat-group-line"><span>${fmtDay(e.date,'weekday')}</span><span style="color:var(--del)">−${money(e.amount)}</span></div>`).join('');
+        return `<div class="cat-group">
+          <div class="cat-group-head"><span>${esc(cat)}</span><span style="color:var(--del)">−${money(tot)}</span></div>
+          <div class="cat-group-items">${lines}</div>
+        </div>`;
       }).join('');
-      expTable=`<table><thead><tr><th>${t('expCat')} / ${t('day')}</th><th class="num">${t('expAmt')}</th></tr></thead><tbody>${rows}</tbody></table>`;
+      expTable = `<div class="cat-group-row">${groups}</div>`;
     } else {
       expTable=`<div class="detail-empty">${t('noEntries')}</div>`;
     }
