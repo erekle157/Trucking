@@ -174,7 +174,8 @@
   .detail-page th.num, .detail-page td.num { text-align:right; }
   .detail-page td { padding:8px; border-top:1px solid var(--row-line); font-size:13px; }
   .detail-empty { color:var(--muted2); font-size:13px; padding:10px; text-align:center; }
-  .m-desc { max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .m-desc { max-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer; }
+  .m-desc.expanded { max-width:none; white-space:normal; overflow:visible; word-break:break-word; }
   .m-del { background:none; border:none; color:var(--del-soft); cursor:pointer; font-size:13px; padding:2px 4px; line-height:1; }
   .m-del:hover { color:var(--del); }
   .maint-search-btn { flex:0 0 auto; background:var(--chip); border:1px solid var(--border); border-radius:9px; padding:7px 11px; font-size:15px; cursor:pointer; }
@@ -1105,7 +1106,7 @@ function renderMaintTable(){
       const action = (x.id===maintMenuId)
         ? `<div class="m-menu"><button class="m-menu-btn edit" onclick="editMaint('${x.id}')" title="${t('edit')}">✏️</button><button class="m-menu-btn del" onclick="confirmDelMaint('${x.id}')" title="${t('del')}">🗑</button><button class="m-menu-btn" onclick="closeMaintMenu()" title="${t('cancelEdit')}">↩</button></div>`
         : `<button class="m-del" onclick="openMaintMenu('${x.id}')" title="${t('del')}">✕</button>`;
-      return `<tr><td style="white-space:nowrap">${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
+      return `<tr><td style="white-space:nowrap">${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc" onclick="this.classList.toggle('expanded')">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
     }).join('')}
     <tr class="cat-grp-row"><td colspan="3">${t('total')}</td><td class="num">${money(total)}</td><td></td></tr>
   </tbody></table>`;
