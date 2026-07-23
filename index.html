@@ -161,11 +161,13 @@
   .stat-enter { flex:0 0 auto; background:var(--chip); color:var(--accent); border:none; border-radius:7px; width:24px; height:24px; font-size:13px; font-weight:800; cursor:pointer; line-height:1; }
   .stat-enter:hover { background:var(--accent); color:#fff; }
   .maint-btn { flex:0 0 auto; white-space:nowrap; background:var(--accent); color:#fff; border:none; border-radius:9px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; }
-  .fx-row { display:flex; gap:5px; }
-  .fx-chip { background:var(--chip); color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:9px 8px; font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+  .fx-row { display:flex; gap:5px; overflow-x:auto; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+  .fx-row::-webkit-scrollbar { display:none; }
+  .fx-row .fx-chip, .fx-row .fx-input { flex:0 0 auto; }
+  .fx-chip { background:var(--chip); color:var(--muted); border:1px solid var(--border); border-radius:8px; padding:9px 6px; font-size:10px; font-weight:700; cursor:pointer; white-space:nowrap; }
   .fx-chip.set { background:var(--accent); color:#fff; border-color:var(--accent); }
   .fx-chip.empty { border-style:dashed; color:var(--accent); }
-  .fx-input { width:64px; padding:9px 6px; font-size:12px; border:1px solid var(--accent); border-radius:8px; background:var(--input-bg); color:var(--text); outline:none; }
+  .fx-input { width:52px; padding:9px 5px; font-size:11px; border:1px solid var(--accent); border-radius:8px; background:var(--input-bg); color:var(--text); outline:none; }
   .action-sheet { position:fixed; inset:0; z-index:1500; display:flex; align-items:flex-end; justify-content:center; }
   .action-sheet-bg { position:absolute; inset:0; background:rgba(0,0,0,.4); }
   .action-sheet-box { position:relative; z-index:1; width:100%; max-width:460px; padding:12px; display:flex; flex-direction:column; gap:8px; }
@@ -263,14 +265,14 @@
     <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
   </div>
   <div class="row" style="margin-top:8px;">
-    <div style="flex:1 1 100px;min-width:0"><label id="lblExpDate"></label>
+    <div style="flex:1 1 auto;min-width:0"><label id="lblExpDate"></label>
       <div class="date-row">
         <button class="daybtn" onclick="changeExpDate(-1)">◀</button>
         <input id="expDate" type="date"/>
         <button class="daybtn" onclick="changeExpDate(1)">▶</button>
       </div>
     </div>
-    <div style="flex:0 0 auto"><label id="lblFixedChips" style="font-size:9.5px;white-space:nowrap"></label><div id="fixedChips"></div></div>
+    <div style="flex:0 0 88px;min-width:0"><label id="lblFixedChips" style="font-size:9.5px;white-space:nowrap"></label><div id="fixedChips"></div></div>
   </div>
 </div>
 
@@ -358,7 +360,7 @@ let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
 function setActiveCars(arr){ if(appMode==='owner') carsOwner=arr; else carsDriver=arr; }
 function saveActiveCars(){ return appMode==='owner' ? saveCarsOwner() : saveCarsDriver(); }
-let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week', companyFeeHistory: [], fixedExpHistory: [], fixedWeekHistory: [], fixedMonthHistory: [] };
+let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week', companyFeeHistory: [], fixedExpHistory: [], fixedWeekHistory: [], fixedMonthHistory: [], perMileHistory: [] };
 let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
@@ -900,17 +902,23 @@ function renderFixedChips(){
   const today=todayStr();
   const w=historyLatestAt(settings.fixedWeekHistory, today); const wv=w?w.amount:0;
   const m=historyLatestAt(settings.fixedMonthHistory, today); const mv=m?m.amount:0;
+  const pm=historyLatestAt(settings.perMileHistory, today); const pmv=pm?pm.rate:0;
   const chip=(kind,val)=>{
-    const lbl = kind==='week'?t('weekWord'):t('monthWord');
+    const lbl = kind==='week'?t('weekWord'):(kind==='month'?t('monthWord'):'$/m');
     if(fixedEditing===kind){
-      return `<input id="fixedEditInput" class="fx-input" type="number" inputmode="decimal" value="${val>0?val:''}" placeholder="${lbl}"
+      return `<input id="fixedEditInput" class="fx-input" type="number" inputmode="decimal" step="${kind==='mile'?'0.01':'1'}" value="${val>0?val:''}" placeholder="${lbl}"
         onkeydown="if(event.key==='Enter'){commitFixed('${kind}')}else if(event.key==='Escape'){fixedEditing=null;renderFixedChips()}"
         onblur="commitFixed('${kind}')">`;
     }
-    const show = val>0 ? (kind==='week'?'W':'M')+' '+money(val) : '＋ '+lbl;
+    let show;
+    if(val>0){
+      if(kind==='week') show='W '+money(val);
+      else if(kind==='month') show='M '+money(val);
+      else show='$/m '+val;
+    } else show='＋ '+lbl;
     return `<button type="button" class="fx-chip${val>0?' set':' empty'}" onclick="editFixed('${kind}')">${show}</button>`;
   };
-  el.innerHTML = `<div class="fx-row">${chip('week',wv)}${chip('month',mv)}</div>`;
+  el.innerHTML = `<div class="fx-row">${chip('week',wv)}${chip('month',mv)}${chip('mile',pmv)}</div>`;
   if(fixedEditing){ const i=document.getElementById('fixedEditInput'); if(i){ i.focus(); i.select(); } }
 }
 function editFixed(kind){ fixedEditing=kind; renderFixedChips(); }
@@ -918,15 +926,35 @@ function commitFixed(kind){
   if(fixedEditing!==kind) return;
   const i=document.getElementById('fixedEditInput'); const val=i?i.value:'';
   fixedEditing=null;
-  const amt = val===''?0:parseFloat(val);
+  const num = val===''?0:parseFloat(val);
   const today=todayStr();
-  const hist = kind==='week'?settings.fixedWeekHistory:settings.fixedMonthHistory;
-  const existing=hist.find(h=>h.date===today);
-  if(existing) existing.amount=amt; else hist.push({date:today, amount:amt});
+  if(kind==='mile'){
+    const existing=settings.perMileHistory.find(h=>h.date===today);
+    if(existing) existing.rate=num; else settings.perMileHistory.push({date:today, rate:num});
+  } else {
+    const hist = kind==='week'?settings.fixedWeekHistory:settings.fixedMonthHistory;
+    const existing=hist.find(h=>h.date===today);
+    if(existing) existing.amount=num; else hist.push({date:today, amount:num});
+  }
   saveSettings(); renderFixedChips(); render();
 }
 function saveFixedExpWeek(){ /* legacy no-op */ }
 function saveFixedExpMonth(){ /* legacy no-op */ }
+function perMileRateFor(dateStr){ const h=historyLatestAt(settings.perMileHistory, dateStr); return h?h.rate:0; }
+function perMileCostFor(desc){
+  let total=0;
+  Object.keys(weeklyMileage).forEach(mon=>{
+    const r=weeklyMileage[mon]; if(!r || r.start==null || r.end==null) return;
+    let inP=false;
+    if(desc.k==='week') inP=(mon===desc.v);
+    else if(desc.k==='month') inP=(monthKey(mon)===desc.v);
+    else if(desc.k==='year') inP=(mon.slice(0,4)===desc.v);
+    else inP=true;
+    if(!inP) return;
+    total += Math.max(0, r.end-r.start)*perMileRateFor(mon);
+  });
+  return total;
+}
 function fixedCostFor(desc){
   const dates=[]; carsOwner.forEach(c=>{ if(matchPeriod(c.date, desc)) dates.push(c.date); }); expenses.forEach(e=>{ if(matchPeriod(e.date, desc)) dates.push(e.date); });
   if(!dates.length) return 0;
@@ -957,6 +985,7 @@ function normalizeSettings(){
   if(!Array.isArray(settings.companyFeeHistory)) settings.companyFeeHistory=[];
   if(!Array.isArray(settings.fixedWeekHistory)) settings.fixedWeekHistory=[];
   if(!Array.isArray(settings.fixedMonthHistory)) settings.fixedMonthHistory=[];
+  if(!Array.isArray(settings.perMileHistory)) settings.perMileHistory=[];
   if(settings.companyFeeHistory.length===0 && settings.companyFee!=='' && settings.companyFee!=null && !isNaN(parseFloat(settings.companyFee))){
     settings.companyFeeHistory.push({date:'2000-01-01', value:parseFloat(settings.companyFee)});
   }
@@ -1250,6 +1279,7 @@ function renderDetail(){
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
   const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
   const fixedAmt = owner && (loads.length>0 || exps.length>0) ? fixedCostFor(detailDesc) : 0;
+  const pmAmt = owner ? perMileCostFor(detailDesc) : 0;
 
   let summary;
   if(owner){
@@ -1257,8 +1287,9 @@ function renderDetail(){
       <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
       ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
       ${fixedAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedAmt)}</div></div>`:''}
+      ${pmAmt>0?`<div class="detail-sum-box"><div class="lbl">$/m</div><div class="val" style="color:var(--del)">−${money(pmAmt)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eTotal)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-fixedAmt-eTotal)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-fixedAmt-pmAmt-eTotal)}</div></div>
     </div>`;
   } else {
     summary = `<div class="detail-summary">
@@ -1337,7 +1368,8 @@ function ownerRenderStats(){
     const hasInfo=gArr.length>0 || eArr.length>0;
     const fx=hasInfo?fixedCostFor(desc):0;
     const mi=periodMiles(desc);
-    return {l,g,e,fee,fx,mi,n:g-fee-e-fx,desc};
+    const pm=perMileCostFor(desc);
+    return {l,g,e,fee,fx,pm,mi,n:g-fee-e-fx-pm,desc};
   };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
@@ -1352,7 +1384,7 @@ function ownerRenderStats(){
     <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.fx)}</div>
+      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.fx+o.pm)}</div>
       ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
@@ -1364,7 +1396,8 @@ function ownerWeekColumn(mon, collapsed){
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
   const fee=companyFeeAmtForLoads(loads);
   const fixedAmt=(loads.length>0 || exps.length>0) ? fixedCostFor({k:'week',v:mon}) : 0;
-  const net=g-fee-eTotal-fixedAmt;
+  const pmAmt=perMileCostFor({k:'week',v:mon});
+  const net=g-fee-eTotal-fixedAmt-pmAmt;
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
@@ -1417,6 +1450,7 @@ function ownerWeekColumn(mon, collapsed){
       <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
       ${fee>0?`<div>${t('companyFee')}: <b>−${money(fee)}</b></div>`:''}
       ${fixedAmt>0?`<div>${t('fixedExpLbl')}: <b>−${money(fixedAmt)}</b></div>`:''}
+      ${pmAmt>0?`<div>$/m: <b>−${money(pmAmt)}</b></div>`:''}
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
@@ -1447,7 +1481,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const fx=fixedCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx)}</td><td class="num share-col">${money(m.g-fee-fx-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmtForLoads(m.loads); const fx=fixedCostFor({k:'month',v:k}); const pm=perMileCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx+pm)}</td><td class="num share-col">${money(m.g-fee-fx-pm-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
