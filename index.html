@@ -152,6 +152,23 @@
     border-top:1px solid var(--border); display:none; z-index:9999; }
   #kbBar.show { display:block; }
   .kb-add { width:100%; padding:13px; border:none; border-radius:11px; background:var(--accent); color:#fff; font-size:16px; font-weight:700; }
+  .stat-top { display:flex; align-items:flex-start; justify-content:space-between; gap:4px; }
+  .stat-enter { flex:0 0 auto; background:var(--chip); color:var(--accent); border:none; border-radius:7px; width:24px; height:24px; font-size:13px; font-weight:800; cursor:pointer; line-height:1; }
+  .stat-enter:hover { background:var(--accent); color:#fff; }
+  .detail-page { position:fixed; inset:0; background:var(--bg); z-index:1000; overflow-y:auto; padding:14px; max-width:820px; margin:0 auto; }
+  .detail-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; position:sticky; top:0; background:var(--bg); padding:4px 0; }
+  .detail-back { flex:0 0 auto; background:var(--chip); color:var(--text); border:none; border-radius:9px; padding:8px 14px; font-size:15px; font-weight:700; cursor:pointer; }
+  .detail-title { font-size:18px; font-weight:800; }
+  .detail-summary { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
+  .detail-sum-box { flex:1 1 100px; background:var(--card); border-radius:11px; padding:10px 12px; box-shadow:0 1px 3px var(--shadow); }
+  .detail-sum-box .lbl { font-size:11px; color:var(--muted2); }
+  .detail-sum-box .val { font-size:18px; font-weight:800; margin-top:2px; }
+  .detail-section-title { font-size:14px; font-weight:700; margin:16px 0 6px; color:var(--muted); }
+  .detail-page table { width:100%; border-collapse:collapse; }
+  .detail-page th { text-align:left; font-size:11px; color:var(--muted2); font-weight:600; padding:4px 8px; }
+  .detail-page th.num, .detail-page td.num { text-align:right; }
+  .detail-page td { padding:8px; border-top:1px solid var(--row-line); font-size:13px; }
+  .detail-empty { color:var(--muted2); font-size:13px; padding:10px; text-align:center; }
 </style>
 </head><body>
 
@@ -235,6 +252,8 @@
 
 <div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
 
+<div id="detailPage" class="detail-page" style="display:none"></div>
+
 <script>
 (function(){
   var icon="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='512' height='512'%3E%3Crect width='512' height='512' rx='104' fill='%232fa36b'/%3E%3Ctext x='50%25' y='55%25' font-size='300' text-anchor='middle' dominant-baseline='middle' fill='white' font-family='sans-serif' font-weight='bold'%3E%24%3C/text%3E%3C/svg%3E";
@@ -273,14 +292,14 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან" },
   en:{ title:"Transport Tracker", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back" }
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -519,16 +538,16 @@ function renderStats(){
   const mk=anchorMonthFor(carsDriver), prevMk=prevMonthKey(mk);
   const filt=(fn)=>{ const arr=carsDriver.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
   const data=[
-    [t('thisWeek'), filt(c=>mondayOf(c.date)===wk)],
-    [t('lastWeek'), filt(c=>mondayOf(c.date)===lastWk)],
-    [t('thisMonth'), filt(c=>monthKey(c.date)===mk)],
-    [t('lastMonth'), filt(c=>monthKey(c.date)===prevMk)],
-    [(yr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===yr)],
-    [(prevYr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===prevYr)],
-    [t('total'), filt(()=>true)]
+    [t('thisWeek'), filt(c=>mondayOf(c.date)===wk), {k:'week',v:wk}],
+    [t('lastWeek'), filt(c=>mondayOf(c.date)===lastWk), {k:'week',v:lastWk}],
+    [t('thisMonth'), filt(c=>monthKey(c.date)===mk), {k:'month',v:mk}],
+    [t('lastMonth'), filt(c=>monthKey(c.date)===prevMk), {k:'month',v:prevMk}],
+    [(yr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===yr), {k:'year',v:yr}],
+    [(prevYr+' '+t('yearWord')).trim(), filt(c=>c.date.slice(0,4)===prevYr), {k:'year',v:prevYr}],
+    [t('total'), filt(()=>true), {k:'all',v:''}]
   ];
-  document.getElementById('stats').innerHTML=data.map(([l,o])=>`
-    <div class="stat"><div class="lbl">${l}</div>
+  document.getElementById('stats').innerHTML=data.map(([l,o,desc])=>`
+    <div class="stat"><div class="stat-top"><div class="lbl">${l}</div><button class="stat-enter" onclick="openDetail('${desc.k}','${desc.v}','${escJS(l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(shareOf(o.g))}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${o.n} ${t('cars')}</div>
@@ -648,12 +667,12 @@ function renderContent(){
   keys.forEach(k=>{
     const list=groups[k].sort((a,b)=>a.date<b.date?-1:1);
     const g=list.reduce((a,x)=>a+x.price,0);
-    html+=`<tr class="grp"><td>${fmtMonth(k)} · ${list.length} ${t('carsShort')}</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
+    html+=`<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)} · ${list.length} ${t('carsShort')}</td><td class="num">${money(g)}</td><td class="num share-col">${money(shareOf(g))}</td></tr>`;
     list.forEach(x=>{ html+=`<tr><td class="rowday" style="padding-left:22px">${fmtDay(x.date)}${x.route?' · '+esc(x.route):''}</td><td class="num">${money(x.price)}</td><td class="num"><button class="del" onclick="delCar('${x.id}')">${t('del')}</button></td></tr>`; });
   });
   html+=`</tbody></table>`; c.innerHTML=html;
 }
-function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent(); } else { renderStats(); renderContent(); } }
+function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent(); } else { renderStats(); renderContent(); } if(detailDesc) renderDetail(); }
 
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
@@ -790,7 +809,7 @@ function applyMode(){
   document.getElementById('mileageRow').style.display = owner ? '' : 'none';
   if(owner) loadMileageInputs();
 }
-function setMode(m){ appMode=m; weekPage=0; store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
+function setMode(m){ appMode=m; weekPage=0; if(typeof closeDetail==='function') closeDetail(); store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
 let editingExpId = null;
 function addExpense(){
   const el=document.getElementById('expAmt'); const amt=parseFloat(el.value);
@@ -833,24 +852,95 @@ function updateExpAddBtn(){
 }
 function delExpense(id){ if(editingExpId===id) cancelEditExpense(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
 
+// --- დეტალური გვერდი (drill-down) ---
+let detailDesc=null, detailLabel='';
+function matchPeriod(dateStr, desc){
+  if(!desc) return false;
+  if(desc.k==='week') return mondayOf(dateStr)===desc.v;
+  if(desc.k==='month') return monthKey(dateStr)===desc.v;
+  if(desc.k==='year') return dateStr.slice(0,4)===desc.v;
+  return true;
+}
+function openDetail(kind, val, label){
+  detailDesc={k:kind, v:val}; detailLabel=label;
+  renderDetail();
+  document.getElementById('detailPage').style.display='block';
+  document.body.style.overflow='hidden';
+  window.scrollTo(0,0);
+}
+function closeDetail(){
+  document.getElementById('detailPage').style.display='none';
+  document.body.style.overflow='';
+  detailDesc=null;
+}
+function renderDetail(){
+  if(!detailDesc) return;
+  const owner = appMode==='owner';
+  const carArr = owner ? carsOwner : carsDriver;
+  const loads = carArr.filter(c=>matchPeriod(c.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1);
+  const exps = owner ? expenses.filter(e=>matchPeriod(e.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1) : [];
+  const g = loads.reduce((a,x)=>a+x.price,0);
+  const eTotal = exps.reduce((a,x)=>a+x.amount,0);
+
+  let summary;
+  if(owner){
+    summary = `<div class="detail-summary">
+      <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eTotal)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-eTotal)}</div></div>
+    </div>`;
+  } else {
+    summary = `<div class="detail-summary">
+      <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('shareFoot').replace(':','')}</div><div class="val" style="color:var(--accent)">${money(shareOf(g))}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('cars')}</div><div class="val">${loads.length}</div></div>
+    </div>`;
+  }
+
+  const loadsTable = loads.length
+    ? `<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">mi</th><th class="num">${t('priceCol')}</th></tr></thead><tbody>${
+        loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles||''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
+    : `<div class="detail-empty">${t('noEntries')}</div>`;
+
+  let expSection='';
+  if(owner){
+    const expTable = exps.length
+      ? `<table><thead><tr><th>${t('day')}</th><th>${t('expCat')}</th><th class="num">${t('expAmt')}</th></tr></thead><tbody>${
+          exps.map(e=>`<tr><td>${fmtDay(e.date)}</td><td>${esc(e.cat)}</td><td class="num" style="color:var(--del);font-weight:700">−${money(e.amount)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="detail-empty">${t('noEntries')}</div>`;
+    expSection = `<div class="detail-section-title">${t('totalExp')} (${exps.length})</div>${expTable}`;
+  }
+
+  document.getElementById('detailPage').innerHTML = `
+    <div class="detail-head">
+      <button class="detail-back" onclick="closeDetail()">← ${t('back')}</button>
+      <div class="detail-title">${esc(detailLabel)}</div>
+    </div>
+    ${summary}
+    <div class="detail-section-title">${t('priceCol')} (${loads.length})</div>
+    ${loadsTable}
+    ${expSection}
+  `;
+}
+
 function ownerRenderStats(){
   const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
   const wk=anchorMonFor(carsOwner), lastWk=addDays(wk,-7);
   const mk=anchorMonthFor([...carsOwner, ...expenses]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
   const esum=fn=>expenses.filter(fn).reduce((a,x)=>a+x.amount,0);
-  const card=(l,fn)=>{ const g=gsum(fn), e=esum(fn); return {l,g,e,n:g-e}; };
+  const card=(l,fn,desc)=>{ const g=gsum(fn), e=esum(fn); return {l,g,e,n:g-e,desc}; };
   const data=[
-    card(t('thisWeek'), c=>mondayOf(c.date)===wk),
-    card(t('lastWeek'), c=>mondayOf(c.date)===lastWk),
-    card(t('thisMonth'), c=>monthKey(c.date)===mk),
-    card(t('lastMonth'), c=>monthKey(c.date)===prevMk),
-    card((yr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===yr),
-    card((prevYr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===prevYr),
-    card(t('total'), ()=>true)
+    card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
+    card(t('lastWeek'), c=>mondayOf(c.date)===lastWk, {k:'week',v:lastWk}),
+    card(t('thisMonth'), c=>monthKey(c.date)===mk, {k:'month',v:mk}),
+    card(t('lastMonth'), c=>monthKey(c.date)===prevMk, {k:'month',v:prevMk}),
+    card((yr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===yr, {k:'year',v:yr}),
+    card((prevYr+' '+t('yearWord')).trim(), c=>c.date.slice(0,4)===prevYr, {k:'year',v:prevYr}),
+    card(t('total'), ()=>true, {k:'all',v:''})
   ];
   document.getElementById('stats').innerHTML=data.map(o=>`
-    <div class="stat"><div class="lbl">${o.l}</div>
+    <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${t('totalExp')}: ${money(o.e)}</div>
@@ -939,7 +1029,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; return `<tr class="grp"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e)}</td><td class="num share-col">${money(m.g-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e)}</td><td class="num share-col">${money(m.g-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
