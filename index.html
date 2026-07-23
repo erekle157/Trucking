@@ -273,15 +273,15 @@
   .ifta-opt:last-child { border-bottom:none; }
   .ifta-opt:hover { background:var(--chip); }
   .ifta-opt b { color:var(--accent); }
-  .fuel-inline { display:flex; align-items:stretch; justify-content:flex-end; width:100%; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); overflow:hidden; }
-  .fuel-inline input { border:none; background:transparent; border-radius:0; padding:9px 4px; font-size:16px; text-align:right; min-width:0; color:var(--text); }
+  .fuel-inline { display:flex; align-items:stretch; width:100%; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); overflow:hidden; }
+  .fuel-inline input { border:none; background:transparent; border-radius:0; padding:9px 3px; font-size:16px; text-align:center; min-width:0; color:var(--text); }
   .fuel-inline input:focus { outline:none; background:var(--card); }
   .fuel-inline .fi-div { flex:0 0 1px; background:var(--border); align-self:stretch; }
-  .fuel-inline #expPump { flex:0 0 auto; width:50px; }
-  .fuel-inline .fi-fuel { flex:0 0 auto; width:100px; text-align:left; }
-  .fuel-inline #expGal { flex:0 0 auto; width:30px; }
-  .fuel-inline .fi-state { flex:0 0 auto; width:55px; position:relative; min-width:0; display:flex; }
-  .fuel-inline .fi-state input { width:100%; padding-right:13px; }
+  .fuel-inline .fi-fuel { flex:1.15 1 0; text-align:left; padding-left:10px; }
+  .fuel-inline #expPump { flex:1.1 1 0; }
+  .fuel-inline #expGal { flex:0.55 1 0; }
+  .fuel-inline .fi-state { flex:1.1 1 0; position:relative; min-width:0; display:flex; }
+  .fuel-inline .fi-state input { width:100%; text-align:center; padding-right:14px; }
   .fuel-inline .fi-state::after { content:'↓'; position:absolute; right:4px; top:50%; transform:translateY(-50%); color:var(--muted2); font-size:11px; pointer-events:none; }
 </style>
 </head><body>
@@ -1758,7 +1758,8 @@ function ownerRenderStats(){
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
     const mi=periodMiles(desc);
-    return {l,g,e,fee,mi,n:g-fee-e,desc};
+    const pump=fuels.filter(f=>matchPeriod(f.date, desc)).reduce((a,f)=>a+(f.pump||0),0);
+    return {l,g,e,fee,mi,pump,n:g-fee-e,desc};
   };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
@@ -1774,6 +1775,7 @@ function ownerRenderStats(){
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee)}</div>
+      ${o.pump>0?`<div class="cnt">${t('pumpLbl')}: ${money(o.pump)}</div>`:''}
       ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
