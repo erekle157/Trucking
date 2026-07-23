@@ -455,6 +455,7 @@ const WD_KA = ['კვ','ორშ','სამ','ოთხ','ხუთ','პა�
 const WD_EN = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 function weekdayShort(s){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); return (lang==='ka'?WD_KA:WD_EN)[d.getDay()]; }
 function fmtDay(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact==='weekday') return weekdayShort(s); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return weekdayShort(s)+', '+d.toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
+function fmtDayNumY(s){ if(!valid(s)) return s||''; return new Date(s+'T00:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric',year:'2-digit'}); }
 function dm(s, compact){ if(!valid(s)) return s||''; const d=new Date(s+'T00:00:00'); if(compact) return d.toLocaleDateString('en-US',{month:'numeric',day:'numeric'}); return d.toLocaleDateString(loc(),{day:'numeric',month:'short'}); }
 function monthKey(s){ return (s||'').slice(0,7); }
 function fmtMonth(k){ if(!valid(k+'-01')) return k||''; return new Date(k+'-01T00:00:00').toLocaleDateString(loc(),{month:'long',year:'numeric'}); }
@@ -1045,6 +1046,8 @@ function closeDetail(){
 
 // --- Maintenance List გვერდი ---
 function saveMaint(){ store.set('maintenance', JSON.stringify(maintenance)); pushCloud(); }
+function maintAsExp(){ return maintenance.filter(m=>(m.price||0)>0).map(m=>({ id:m.id, date:m.date, cat:'Maintenance', amount:m.price, isMaint:true })); }
+function allExps(){ return expenses.concat(maintAsExp()); }
 let maintSearch='', maintSearchOpen=false, editingMaintId=null, maintMenuId=null;
 function openMaint(){
   const p=document.getElementById('maintPage');
@@ -1106,7 +1109,7 @@ function renderMaintTable(){
       const action = (x.id===maintMenuId)
         ? `<div class="m-menu"><button class="m-menu-btn edit" onclick="editMaint('${x.id}')" title="${t('edit')}">✏️</button><button class="m-menu-btn del" onclick="confirmDelMaint('${x.id}')" title="${t('del')}">🗑</button><button class="m-menu-btn" onclick="closeMaintMenu()" title="${t('cancelEdit')}">↩</button></div>`
         : `<button class="m-del" onclick="openMaintMenu('${x.id}')" title="${t('del')}">✕</button>`;
-      return `<tr><td style="white-space:nowrap">${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc" onclick="this.classList.toggle('expanded')">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
+      return `<tr><td style="white-space:nowrap">${fmtDayNumY(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td class="m-desc" onclick="this.classList.toggle('expanded')">${esc(x.desc||'')}</td><td class="num" style="font-weight:700;white-space:nowrap">${money(x.price||0)}</td><td class="num">${action}</td></tr>`;
     }).join('')}
     <tr class="cat-grp-row"><td colspan="3">${t('total')}</td><td class="num">${money(total)}</td><td></td></tr>
   </tbody></table>`;
@@ -1163,7 +1166,7 @@ function renderDetail(){
   const owner = appMode==='owner';
   const carArr = owner ? carsOwner : carsDriver;
   const loads = carArr.filter(c=>matchPeriod(c.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1);
-  const exps = owner ? expenses.filter(e=>matchPeriod(e.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1) : [];
+  const exps = owner ? allExps().filter(e=>matchPeriod(e.date, detailDesc)).sort((a,b)=>a.date<b.date?-1:1) : [];
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
   const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
@@ -1231,11 +1234,12 @@ function renderDetail(){
 function ownerRenderStats(){
   const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
   const wk=anchorMonFor(carsOwner), lastWk=addDays(wk,-7);
-  const mk=anchorMonthFor([...carsOwner, ...expenses]), prevMk=prevMonthKey(mk);
+  const combExp=allExps();
+  const mk=anchorMonthFor([...carsOwner, ...combExp]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
-  const esum=fn=>expenses.filter(fn).reduce((a,x)=>a+x.amount,0);
+  const esum=fn=>combExp.filter(fn).reduce((a,x)=>a+x.amount,0);
   const card=(l,fn,desc)=>{
-    const gArr=carsOwner.filter(fn), eArr=expenses.filter(fn);
+    const gArr=carsOwner.filter(fn), eArr=combExp.filter(fn);
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
     const hasInfo=gArr.length>0 || eArr.length>0;
@@ -1260,7 +1264,7 @@ function ownerRenderStats(){
 }
 function ownerWeekColumn(mon, collapsed){
   const loads=carsOwner.filter(c=>mondayOf(c.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
-  const exps=expenses.filter(e=>mondayOf(e.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
+  const exps=allExps().filter(e=>mondayOf(e.date)===mon).sort((a,b)=>a.date<b.date?-1:1);
   const g=loads.reduce((a,x)=>a+x.price,0);
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
@@ -1276,7 +1280,9 @@ function ownerWeekColumn(mon, collapsed){
       ? cDates.map(d=>{
           const dl=loads.filter(c=>c.date===d), de=exps.filter(e=>e.date===d);
           const posChips=dl.map(c=>`<span class="pchip pos"><span class="pc-txt">${moneyc(c.price)}</span><button onclick="delCar('${c.id}')" title="${t('del')}">✕</button></span>`).join('');
-          const negChips=de.map(e=>`<span class="pchip neg"><span class="pc-txt" onclick="editExpense('${e.id}')" style="cursor:pointer">−${moneyc(e.amount)}</span><button onclick="delExpense('${e.id}')" title="${t('del')}">✕</button></span>`).join('');
+          const negChips=de.map(e=> e.isMaint
+            ? `<span class="pchip neg"><span class="pc-txt" onclick="openMaint()" style="cursor:pointer">🔧 −${moneyc(e.amount)}</span></span>`
+            : `<span class="pchip neg"><span class="pc-txt" onclick="editExpense('${e.id}')" style="cursor:pointer">−${moneyc(e.amount)}</span><button onclick="delExpense('${e.id}')" title="${t('del')}">✕</button></span>`).join('');
           return `<div class="day-row"><div class="day-label">${fmtDay(d,'weekday')}</div><div class="day-prices split-lr"><div class="lr-col">${posChips}</div><div class="lr-col">${negChips}</div></div></div>`;
         }).join('')
       : `<div class="wk-empty">${t('noEntries')}</div>`;
@@ -1294,7 +1300,9 @@ function ownerWeekColumn(mon, collapsed){
           }).join('')
         : '';
       const expCol = rec.exps.length
-        ? rec.exps.map(e=>`<div class="exp-item"><span onclick="editExpense('${e.id}')" style="cursor:pointer">${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
+        ? rec.exps.map(e=> e.isMaint
+            ? `<div class="exp-item" onclick="openMaint()" style="cursor:pointer"><span>🔧 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`
+            : `<div class="exp-item"><span onclick="editExpense('${e.id}')" style="cursor:pointer">${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span><button class="del" onclick="delExpense('${e.id}')">✕</button></div>`).join('')
         : '';
       return `<div class="day-row-owner">
         <div class="day-label">${fmtDay(d,'weekday')}</div>
@@ -1341,7 +1349,7 @@ function ownerRenderContent(){
   if(view==='month'){
     const months={};
     carsOwner.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0,loads:[]}).g+=x.price; months[k].loads.push(x); });
-    expenses.forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0,loads:[]}).e+=x.amount; });
+    allExps().forEach(x=>{ const k=monthKey(x.date); (months[k]=months[k]||{g:0,e:0,loads:[]}).e+=x.amount; });
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
