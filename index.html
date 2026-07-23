@@ -33,6 +33,9 @@
   .topleft { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 auto; }
   h1 { font-size:16px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
   .modesw-mini { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; flex:0 0 auto; }
+  .freq-sw { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; height:38px; }
+  .freq-sw button { background:var(--card); color:var(--muted); border:none; padding:0 8px; font-size:11px; font-weight:700; cursor:pointer; }
+  .freq-sw button.active { background:var(--accent); color:#fff; }
   .modesw-mini button { background:var(--card); color:var(--muted); border:none; padding:5px 9px; font-size:15px; cursor:pointer; line-height:1; }
   .modesw-mini button.active { background:var(--tab-active-bg); }
   .modesw-mini button#modeOwner.active { background:#f5b833; }
@@ -231,11 +234,18 @@
     <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
   </div>
   <div class="row" style="margin-top:8px;">
-    <div style="flex:1 1 auto;min-width:0"><label id="lblExpDate"></label>
+    <div style="flex:2 1 150px;min-width:0"><label id="lblExpDate"></label>
       <div class="date-row">
         <button class="daybtn" onclick="changeExpDate(-1)">◀</button>
         <input id="expDate" type="date"/>
         <button class="daybtn" onclick="changeExpDate(1)">▶</button>
+      </div>
+    </div>
+    <div style="flex:0 0 64px"><label id="lblFixedExp" style="white-space:nowrap;font-size:9.5px"></label><input id="fixedExp" type="number" inputmode="decimal"/></div>
+    <div style="flex:0 0 auto"><label>&nbsp;</label>
+      <div class="freq-sw">
+        <button type="button" id="freqWeek" class="active" onclick="setFixedFreq('week')"></button>
+        <button type="button" id="freqMonth" onclick="setFixedFreq('month')"></button>
       </div>
     </div>
   </div>
@@ -295,18 +305,18 @@ function toggleTheme(){ const nx = currentTheme==='dark'?'light':'dark'; applyTh
 let lang = 'ka';
 const T = {
   ka:{ title:"4Truckers", price:"ფასი ($)", pricePh:"მაგ. 500", date:"თარიღი", add:"დამატება", addEnter:"დამატება ↵",
-    myShare:"ჩემი წილი:", companyFee:"კომპ. %", byWeek:"კვირების მიხედვით", byMonth:"თვეების მიხედვით", all:"ყველა", clearAll:"ყველაფრის წაშლა",
+    myShare:"ჩემი წილი:", companyFee:"კომპ. %", byWeek:"კვირები", byMonth:"თვეები", all:"ყველა", clearAll:"ყველაფრის წაშლა",
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე" },
   en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month" }
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -316,7 +326,7 @@ let carsOwner = [];
 function activeCars(){ return appMode==='owner' ? carsOwner : carsDriver; }
 function setActiveCars(arr){ if(appMode==='owner') carsOwner=arr; else carsDriver=arr; }
 function saveActiveCars(){ return appMode==='owner' ? saveCarsOwner() : saveCarsDriver(); }
-let settings = { share: 33, companyFee: '' };
+let settings = { share: 33, companyFee: '', fixedExpAmt: '', fixedExpFreq: 'week' };
 let view = 'week';
 let weekPage = 0;
 let appMode = 'driver';
@@ -383,7 +393,7 @@ function subscribeCloud(){
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
         store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-        document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+        document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
@@ -395,7 +405,7 @@ function subscribeCloud(){
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
       store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-      document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; populateCats(); if(appMode==='owner') loadMileageInputs(); render();
+      document.getElementById('share').value=settings.share; document.getElementById('companyFee').value=settings.companyFee||''; syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -466,6 +476,9 @@ function applyStaticLabels(){
   document.getElementById('lblStartMi').textContent = t('startMi');
   document.getElementById('lblEndMi').textContent = t('endMi');
   document.getElementById('lblWeekMi').textContent = t('weekMi');
+  document.getElementById('lblFixedExp').textContent = t('fixedExpLbl');
+  document.getElementById('freqWeek').textContent = t('weekWord');
+  document.getElementById('freqMonth').textContent = t('monthWord');
 }
 function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); renderAuthBar(); render(); }
 
@@ -507,7 +520,7 @@ function undo(){ const k=appMode==='owner'?'owner':'driver'; if(!undoStack[k].le
 function redo(){ const k=appMode==='owner'?'owner':'driver'; if(!redoStack[k].length) return; undoStack[k].push(JSON.stringify(activeCars())); setActiveCars(JSON.parse(redoStack[k].pop())); saveActiveCars(); render(); updateUndoRedo(); }
 
 function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
-function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value) eEl.value=dEl.value; }
+function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value){ eEl.value=dEl.value; } }
 function addCar(){
   const priceEl=document.getElementById('price');
   const price=parseFloat(priceEl.value);
@@ -767,7 +780,11 @@ function removeCustomCat(name){
   pushCloud();
   populateCats();
 }
-function pickCat(c){ selectedCat=c; populateCats(); }
+function pickCat(c){
+  selectedCat=c; populateCats();
+  const amtEl=document.getElementById('expAmt');
+  if(amtEl){ amtEl.focus(); amtEl.select(); }
+}
 function startAddCat(){ addingCat=true; populateCats(); }
 function cancelAddCat(){ if(!addingCat) return; addingCat=false; populateCats(); }
 function submitNewCat(){
@@ -782,6 +799,42 @@ function submitNewCat(){
   populateCats();
 }
 function changeExpDate(delta){ const el=document.getElementById('expDate'); el.value=addDays(el.value||todayStr(),delta); }
+function syncFixedExpUI(){
+  const el=document.getElementById('fixedExp'); if(el) el.value = (settings.fixedExpAmt!==''&&settings.fixedExpAmt!=null) ? settings.fixedExpAmt : '';
+  const freq = settings.fixedExpFreq||'week';
+  const wBtn=document.getElementById('freqWeek'), mBtn=document.getElementById('freqMonth');
+  if(wBtn) wBtn.classList.toggle('active', freq==='week');
+  if(mBtn) mBtn.classList.toggle('active', freq==='month');
+}
+function saveFixedExp(){
+  const val=document.getElementById('fixedExp').value;
+  settings.fixedExpAmt = val===''?'':parseFloat(val);
+  saveSettings(); render();
+}
+function setFixedFreq(f){
+  settings.fixedExpFreq=f; syncFixedExpUI(); saveSettings(); render();
+}
+function weeksInMonth(mk){
+  const first=new Date(mk+'-01T00:00:00');
+  const next=new Date(first); next.setMonth(next.getMonth()+1);
+  let count=0; const day=new Date(first);
+  while(day<next){ if(day.getDay()===1) count++; day.setDate(day.getDate()+1); }
+  return count;
+}
+function fixedCostFor(desc){
+  const amt=parseFloat(settings.fixedExpAmt); if(isNaN(amt)||amt<=0) return 0;
+  const freq=settings.fixedExpFreq||'week';
+  if(desc.k==='week' && freq!=='week') return 0;
+  const dates=[]; carsOwner.forEach(c=>{ if(matchPeriod(c.date, desc)) dates.push(c.date); }); expenses.forEach(e=>{ if(matchPeriod(e.date, desc)) dates.push(e.date); });
+  if(!dates.length) return 0;
+  if(freq==='week'){
+    const weeks=new Set(dates.map(d=>mondayOf(d)));
+    return amt*weeks.size;
+  } else {
+    const months=new Set(dates.map(d=>monthKey(d)));
+    return amt*months.size;
+  }
+}
 
 // --- კვირის ოდომეტრი (Starting/Ending/Weekly mileage) ---
 function companyFeeAmt(g){ const pct=parseFloat(settings.companyFee); return (!isNaN(pct)&&pct>0) ? g*pct/100 : 0; }
@@ -818,7 +871,7 @@ function applyMode(){
   document.getElementById('shareRow').style.display = owner ? 'none' : '';
   document.getElementById('routeRow').style.display = owner ? 'none' : '';
   document.getElementById('mileageRow').style.display = owner ? '' : 'none';
-  if(owner) loadMileageInputs();
+  if(owner){ loadMileageInputs(); syncFixedExpUI(); }
 }
 function setMode(m){ appMode=m; weekPage=0; if(typeof closeDetail==='function') closeDetail(); store.set('mode', m); applyMode(); updateUndoRedo(); render(); }
 let editingExpId = null;
@@ -893,14 +946,16 @@ function renderDetail(){
   const g = loads.reduce((a,x)=>a+x.price,0);
   const eTotal = exps.reduce((a,x)=>a+x.amount,0);
   const feeAmt = owner ? companyFeeAmt(g) : 0;
+  const fixedAmt = owner && (loads.length>0 || exps.length>0) ? fixedCostFor(detailDesc) : 0;
 
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
       <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
       ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
+      ${fixedAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedAmt)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eTotal)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-eTotal)}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-fixedAmt-eTotal)}</div></div>
     </div>`;
   } else {
     summary = `<div class="detail-summary">
@@ -958,7 +1013,14 @@ function ownerRenderStats(){
   const mk=anchorMonthFor([...carsOwner, ...expenses]), prevMk=prevMonthKey(mk);
   const gsum=fn=>carsOwner.filter(fn).reduce((a,c)=>a+c.price,0);
   const esum=fn=>expenses.filter(fn).reduce((a,x)=>a+x.amount,0);
-  const card=(l,fn,desc)=>{ const g=gsum(fn), e=esum(fn), fee=companyFeeAmt(g); return {l,g,e,fee,n:g-fee-e,desc}; };
+  const card=(l,fn,desc)=>{
+    const gArr=carsOwner.filter(fn), eArr=expenses.filter(fn);
+    const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
+    const fee=companyFeeAmt(g);
+    const hasInfo=gArr.length>0 || eArr.length>0;
+    const fx=hasInfo?fixedCostFor(desc):0;
+    return {l,g,e,fee,fx,n:g-fee-e-fx,desc};
+  };
   const data=[
     card(t('thisWeek'), c=>mondayOf(c.date)===wk, {k:'week',v:wk}),
     card(t('lastWeek'), c=>mondayOf(c.date)===lastWk, {k:'week',v:lastWk}),
@@ -972,7 +1034,7 @@ function ownerRenderStats(){
     <div class="stat"><div class="stat-top"><div class="lbl">${o.l}</div><button class="stat-enter" onclick="openDetail('${o.desc.k}','${o.desc.v}','${escJS(o.l)}')" title="${t('openDetail')}">↵</button></div>
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
-      <div class="cnt">${t('totalExp')}: ${money(o.e)}${o.fee>0?' · '+t('companyFee')+' −'+money(o.fee):''}</div>
+      <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee+o.fx)}</div>
     </div>`).join('');
 }
 function ownerWeekColumn(mon, collapsed){
@@ -982,7 +1044,8 @@ function ownerWeekColumn(mon, collapsed){
   const wmi=weeklyMiles(mon);
   const eTotal=exps.reduce((a,x)=>a+x.amount,0);
   const fee=companyFeeAmt(g);
-  const net=g-fee-eTotal;
+  const fixedAmt=(loads.length>0 || exps.length>0) ? fixedCostFor({k:'week',v:mon}) : 0;
+  const net=g-fee-eTotal-fixedAmt;
   const cur=(mon===mondayOf(selDate()))?' current':'';
   let body;
   if(collapsed){
@@ -1030,6 +1093,7 @@ function ownerWeekColumn(mon, collapsed){
     <div class="week-foot">
       <div>Gross: <b>${money(g)}</b>${wmi>0?` · $/m ${dpmFmt(g/wmi)}`:''}</div>
       ${fee>0?`<div>${t('companyFee')}: <b>−${money(fee)}</b></div>`:''}
+      ${fixedAmt>0?`<div>${t('fixedExpLbl')}: <b>−${money(fixedAmt)}</b></div>`:''}
       <div>${t('totalExp')}: <b>−${money(eTotal)}</b></div>
       ${catBreak}
       <div class="fshare">${t('payLbl')}: ${money(net)}</div>
@@ -1060,7 +1124,7 @@ function ownerRenderContent(){
     const keys=Object.keys(months).sort().reverse();
     if(!keys.length){ c.innerHTML='<div class="empty">'+t('noneYet')+'</div>'; return; }
     c.innerHTML=`<table><thead><tr><th></th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${t('net')}</th></tr></thead><tbody>${
-      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmt(m.g); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee)}</td><td class="num share-col">${money(m.g-fee-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
+      keys.map(k=>{ const m=months[k]; const fee=companyFeeAmt(m.g); const fx=fixedCostFor({k:'month',v:k}); return `<tr class="grp" style="cursor:pointer" onclick="openDetail('month','${k}','${escJS(fmtMonth(k))}')"><td>${fmtMonth(k)}</td><td class="num">${money(m.g)}</td><td class="num">−${money(m.e+fee+fx)}</td><td class="num share-col">${money(m.g-fee-fx-m.e)}</td></tr>`; }).join('')}</tbody></table>`;
     return;
   }
   // all -> expense list
@@ -1076,6 +1140,7 @@ document.getElementById('ownStartMi').addEventListener('input', updateWeekMiDisp
 document.getElementById('ownEndMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownStartMi').addEventListener('change', saveMileageInputs);
 document.getElementById('ownEndMi').addEventListener('change', saveMileageInputs);
+document.getElementById('fixedExp').addEventListener('change', saveFixedExp);
 
 load();
 </script>
