@@ -273,6 +273,16 @@
   .ifta-opt:last-child { border-bottom:none; }
   .ifta-opt:hover { background:var(--chip); }
   .ifta-opt b { color:var(--accent); }
+  .fuel-inline { display:flex; align-items:stretch; justify-content:flex-end; width:100%; border:1px solid var(--border); border-radius:9px; background:var(--input-bg); overflow:hidden; }
+  .fuel-inline input { border:none; background:transparent; border-radius:0; padding:9px 4px; font-size:16px; text-align:right; min-width:0; color:var(--text); }
+  .fuel-inline input:focus { outline:none; background:var(--card); }
+  .fuel-inline .fi-div { flex:0 0 1px; background:var(--border); align-self:stretch; }
+  .fuel-inline #expPump { flex:0 0 auto; width:50px; }
+  .fuel-inline .fi-fuel { flex:0 0 auto; width:100px; text-align:left; }
+  .fuel-inline #expGal { flex:0 0 auto; width:30px; }
+  .fuel-inline .fi-state { flex:0 0 auto; width:55px; position:relative; min-width:0; display:flex; }
+  .fuel-inline .fi-state input { width:100%; padding-right:13px; }
+  .fuel-inline .fi-state::after { content:'↓'; position:absolute; right:4px; top:50%; transform:translateY(-50%); color:var(--muted2); font-size:11px; pointer-events:none; }
 </style>
 </head><body>
 <div class="topbar">
@@ -325,17 +335,23 @@
     <button class="maint-btn" id="maintBtn" onclick="openMaint()">🔧 <span id="maintBtnLbl"></span></button>
   </div>
   <div class="row">
-    <div style="flex:1 1 90px;min-width:0"><label id="lblExpAmt"></label><input id="expAmt" type="number" inputmode="decimal"/></div>
-    <button class="add" id="expAdd"></button>
-    <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
-  </div>
-  <div class="row" id="fuelRow" style="display:none;margin-top:8px;">
-    <div style="flex:1 1 60px;min-width:0"><label id="lblExpPump"></label><input id="expPump" type="number" inputmode="decimal"/></div>
-    <div style="flex:1 1 50px;min-width:0"><label id="lblExpGal"></label><input id="expGal" type="number" inputmode="decimal"/></div>
-    <div style="flex:1 1 70px;min-width:0;position:relative"><label id="lblExpState"></label>
-      <input id="expState" type="text" autocomplete="off" autocapitalize="characters" placeholder="IL, TX…" oninput="expStateFilter()" onfocus="expStateFilter()" onblur="expBlurList()" onkeydown="if(event.key==='Enter'){event.preventDefault();expStateEnter()}"/>
+    <div style="flex:1 1 90px;min-width:0;position:relative"><label id="lblExpAmt"></label>
+      <input id="expAmt" type="number" inputmode="decimal"/>
+      <div id="fuelInline" class="fuel-inline" style="display:none">
+        <input id="expFuel" class="fi-fuel" type="number" inputmode="decimal" placeholder="Fuel"/>
+        <span class="fi-div"></span>
+        <input id="expPump" type="number" inputmode="decimal" placeholder="Pamp$"/>
+        <span class="fi-div"></span>
+        <input id="expGal" type="number" inputmode="decimal" placeholder="G"/>
+        <span class="fi-div"></span>
+        <div class="fi-state">
+          <input id="expState" type="text" autocomplete="off" autocapitalize="characters" placeholder="State" oninput="expStateFilter()" onfocus="expStateFilter()" onblur="expBlurList()" onkeydown="if(event.key==='Enter'){event.preventDefault();expStateEnter()}"/>
+        </div>
+      </div>
       <div id="expStateList" class="ifta-list" style="display:none"></div>
     </div>
+    <button class="add" id="expAdd"></button>
+    <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
   </div>
   <div class="row" style="margin-top:8px;">
     <div style="flex:1 1 auto;min-width:0"><label id="lblExpDate"></label>
@@ -432,6 +448,7 @@ let expenses = [];
 let weeklyMileage = {};
 let maintenance = [];
 let ifta = {};
+let fuels = [];
 let iftaQuarter = null, iftaEditId = null;
 let EXP_CATS = ['Fuel','DEF','Toll'];
 let customCats = [];
@@ -470,7 +487,7 @@ function pushCloud(){
   if(!db || !cloudUid) return;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>{
-    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, maintenance, ifta, updatedAt: Date.now() })
+    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, maintenance, ifta, fuels, updatedAt: Date.now() })
       .catch(e=>console.warn('cloud write failed', e));
   }, 400);
 }
@@ -488,9 +505,10 @@ function subscribeCloud(){
         if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
         if(Array.isArray(d.customCats)) customCats=d.customCats; if(Array.isArray(d.maintenance)) maintenance=d.maintenance;
         if(d.ifta && typeof d.ifta==='object') ifta=d.ifta;
+        if(Array.isArray(d.fuels)) fuels=d.fuels;
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-        store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta));
+        store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
         document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA();
       } else { pushCloud(); }
     } else if(d){
@@ -501,9 +519,10 @@ function subscribeCloud(){
       if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
       if(Array.isArray(d.customCats)) customCats=d.customCats; if(Array.isArray(d.maintenance)) maintenance=d.maintenance;
       if(d.ifta && typeof d.ifta==='object') ifta=d.ifta;
+      if(Array.isArray(d.fuels)) fuels=d.fuels;
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-      store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta));
+      store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
       document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA();
     }
   }, err=>{ console.warn('snapshot error', err); });
@@ -579,9 +598,6 @@ function applyStaticLabels(){
   document.getElementById('lblWeekMi').textContent = t('weekMi');
   document.getElementById('lblFixedChips').textContent = t('fixedExpLbl');
   document.getElementById('maintBtnLbl').textContent = t('maintList');
-  document.getElementById('lblExpPump').textContent = t('expPump');
-  document.getElementById('lblExpGal').textContent = t('expGal');
-  document.getElementById('lblExpState').textContent = t('expStateLbl');
 }
 function setLang(l){ lang=l; store.set('lang', l); applyStaticLabels(); updateExpAddBtn(); if(typeof updateCarAddBtn==='function') updateCarAddBtn(); renderAuthBar(); render(); }
 async function load(){
@@ -597,6 +613,14 @@ async function load(){
   try{ const r=await store.get('weeklyMileage'); if(r) weeklyMileage=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('maintenance'); if(r) maintenance=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('ifta'); if(r) ifta=JSON.parse(r); }catch(e){}
+  try{ const r=await store.get('fuels'); if(r) fuels=JSON.parse(r); }catch(e){}
+  // ძველი Fuel-ხარჯების მიგრაცია ცალკე fuels მასივში
+  const fuelOld = expenses.filter(e=>e.cat==='Fuel' && (e.pump!=null || e.gallons!=null || (e.state&&e.state!=='')));
+  if(fuelOld.length){
+    fuelOld.forEach(e=>fuels.push({ id:e.id, date:e.date, pump:e.pump||0, gallons:e.gallons||0, state:e.state||'' }));
+    expenses = expenses.filter(e=>!(e.cat==='Fuel' && (e.pump!=null || e.gallons!=null || (e.state&&e.state!==''))));
+    store.set('expenses',JSON.stringify(expenses)); store.set('fuels',JSON.stringify(fuels));
+  }
   try{ const r=await store.get('mode'); if(r==='owner'||r==='driver') appMode=r; }catch(e){}
   let changed=false;
   carsDriver = carsDriver.map(c=>{ if(!c.date){ c.date=c.deliveryDate||c.pickupDate||todayStr(); changed=true; } return c; })
@@ -616,22 +640,23 @@ async function load(){
 async function saveCarsDriver(){ await store.set('cars',JSON.stringify(carsDriver)); pushCloud(); }
 async function saveCarsOwner(){ await store.set('carsOwner',JSON.stringify(carsOwner)); pushCloud(); }
 async function saveExpenses(){ await store.set('expenses',JSON.stringify(expenses)); pushCloud(); }
+async function saveFuels(){ await store.set('fuels',JSON.stringify(fuels)); pushCloud(); }
 async function saveSettings(){ await store.set('settings',JSON.stringify(settings)); pushCloud(); }
 let undoStack=[], redoStack=[];
 function snapshot(){
   return JSON.stringify({
-    carsDriver, carsOwner, expenses, maintenance, weeklyMileage, customCats, settings, ifta
+    carsDriver, carsOwner, expenses, maintenance, weeklyMileage, customCats, settings, ifta, fuels
   });
 }
 function applySnapshot(s){
   const d=JSON.parse(s);
   carsDriver=d.carsDriver||[]; carsOwner=d.carsOwner||[]; expenses=d.expenses||[];
   maintenance=d.maintenance||[]; weeklyMileage=d.weeklyMileage||{}; customCats=d.customCats||[];
-  settings=d.settings||settings; ifta=d.ifta||{}; normalizeSettings();
+  settings=d.settings||settings; ifta=d.ifta||{}; fuels=d.fuels||[]; normalizeSettings();
   store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
   store.set('expenses',JSON.stringify(expenses)); store.set('maintenance',JSON.stringify(maintenance));
   store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
-  store.set('settings',JSON.stringify(settings)); store.set('ifta',JSON.stringify(ifta));
+  store.set('settings',JSON.stringify(settings)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
   pushCloud();
   document.getElementById('share').value=settings.share; syncCompanyFeeUI();
   if(appMode==='owner'){ loadMileageInputs(); syncFixedExpUI(); }
@@ -925,8 +950,10 @@ function populateCats(){
   updateFuelRow();
 }
 function updateFuelRow(){
-  const fr=document.getElementById('fuelRow');
-  if(fr) fr.style.display = (selectedCat==='Fuel') ? '' : 'none';
+  const fuel=(selectedCat==='Fuel');
+  const amt=document.getElementById('expAmt'), fi=document.getElementById('fuelInline');
+  if(amt) amt.style.display = fuel?'none':'';
+  if(fi) fi.style.display = fuel?'':'none';
 }
 function removeCustomCat(name){
   customCats = customCats.filter(c=>c!==name);
@@ -1208,32 +1235,41 @@ function addExpense(){
   const el=document.getElementById('expAmt'); const amt=parseFloat(el.value)||0;
   const cat=selectedCat||'Other';
   const isFuel=(cat==='Fuel');
-  let pump=0, gallons=0, state='';
-  if(isFuel){
-    pump=parseFloat(document.getElementById('expPump').value)||0;
-    gallons=parseFloat(document.getElementById('expGal').value)||0;
-    state=expResolveState();
-  }
-  if(isFuel){ if(amt<=0 && pump<=0 && gallons<=0){ el.focus(); return; } }
-  else { if(amt<=0){ el.focus(); return; } }
   const date=document.getElementById('expDate').value||todayStr();
+  if(isFuel){
+    const fuelAmt=parseFloat(document.getElementById('expFuel').value)||0;
+    const pump=parseFloat(document.getElementById('expPump').value)||0;
+    const gallons=parseFloat(document.getElementById('expGal').value)||0;
+    const state=expResolveState();
+    if(fuelAmt<=0 && pump<=0 && gallons<=0){ const fe=document.getElementById('expFuel'); if(fe) fe.focus(); return; }
+    pushHistory();
+    if(editingExpId){
+      const ex=expenses.find(e=>e.id===editingExpId);
+      if(ex){ ex.cat='Fuel'; ex.amount=fuelAmt; ex.date=date; }
+      editingExpId=null; updateExpAddBtn();
+    } else if(fuelAmt>0){
+      expenses.push({ id:Date.now()+''+Math.random(), date, cat:'Fuel', amount:fuelAmt });
+    }
+    if(pump>0 || gallons>0 || state){
+      fuels.push({ id:Date.now()+''+Math.random()+'f', date, pump, gallons, state });
+    }
+    ['expFuel','expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
+    saveExpenses(); saveFuels(); render();
+    const fe=document.getElementById('expFuel'); if(fe) fe.focus();
+    return;
+  }
+  if(amt<=0){ el.focus(); return; }
   pushHistory();
   if(editingExpId){
     const ex=expenses.find(e=>e.id===editingExpId);
-    if(ex){ ex.cat=cat; ex.amount=amt; ex.date=date;
-      if(isFuel){ ex.pump=pump; ex.gallons=gallons; ex.state=state; }
-      else { delete ex.pump; delete ex.gallons; delete ex.state; }
-    }
+    if(ex){ ex.cat=cat; ex.amount=amt; ex.date=date; }
     editingExpId=null;
   } else {
-    const obj={ id:Date.now()+''+Math.random(), date, cat, amount:amt };
-    if(isFuel){ obj.pump=pump; obj.gallons=gallons; obj.state=state; }
-    expenses.push(obj);
+    expenses.push({ id:Date.now()+''+Math.random(), date, cat, amount:amt });
   }
   const persistentCats=EXP_CATS.concat(customCats);
   if(!persistentCats.includes(selectedCat)) selectedCat=EXP_CATS[0];
   el.value='';
-  ['expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
   saveExpenses(); populateCats(); updateExpAddBtn(); render(); el.focus();
 }
 function editExpense(id){
@@ -1244,9 +1280,7 @@ function editExpense(id){
   selectedCat=ex.cat;
   populateCats(); updateExpAddBtn();
   if(ex.cat==='Fuel'){
-    document.getElementById('expPump').value = ex.pump||'';
-    document.getElementById('expGal').value = ex.gallons||'';
-    document.getElementById('expState').value = ex.state||'';
+    const fe=document.getElementById('expFuel'); if(fe) fe.value=ex.amount||'';
   }
   document.getElementById('expCard').scrollIntoView({behavior:'smooth', block:'center'});
   document.getElementById('expAmt').focus();
@@ -1255,7 +1289,7 @@ function cancelEditExpense(){
   editingExpId=null;
   document.getElementById('expAmt').value='';
   document.getElementById('expDate').value=todayStr();
-  ['expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
+  ['expFuel','expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
   selectedCat=EXP_CATS[0];
   populateCats(); updateExpAddBtn();
 }
@@ -1361,7 +1395,7 @@ function currentQuarter(){ return quarterOf(todayStr()); }
 function quarterOf(dateStr){ const q=Math.floor((parseInt(dateStr.slice(5,7))-1)/3)+1; return dateStr.slice(0,4)+'-Q'+q; }
 function iftaFuelGallons(qKey){
   const map={};
-  expenses.forEach(e=>{ if(e.cat==='Fuel' && e.state && (e.gallons||0)>0 && quarterOf(e.date)===qKey){ map[e.state]=(map[e.state]||0)+e.gallons; } });
+  fuels.forEach(f=>{ if(f.state && (f.gallons||0)>0 && quarterOf(f.date)===qKey){ map[f.state]=(map[f.state]||0)+f.gallons; } });
   return map;
 }
 function expStateFilter(){
@@ -1402,6 +1436,7 @@ function iftaNavQuarter(delta){
   iftaQuarter=y+'-Q'+q; iftaEditId=null; renderIFTA();
 }
 function galFmt(n){ return grp((n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:1})); }
+function fuelInfo(e){ const p=[]; if(e.state) p.push(esc(e.state)); if(e.gallons) p.push(galFmt(e.gallons)+'g'); return p.join(' '); }
 function renderIFTA(){
   const p=document.getElementById('iftaPage'); if(!p) return;
   if(!iftaQuarter) iftaQuarter=currentQuarter();
@@ -1413,28 +1448,17 @@ function renderIFTA(){
     const gallons=((mr&&mr.gallons)||0)+(fuelGal[code]||0);
     return { juris:code, id:mr?mr.id:null, miles:mr?(mr.miles||0):0, rate:mr?(mr.rate||0):0, gallons };
   });
-  const tMiles=combined.reduce((a,r)=>a+r.miles,0);
   const tGal=combined.reduce((a,r)=>a+r.gallons,0);
-  const tMpg=tGal>0?tMiles/tGal:0;
-  let tTax=0; combined.forEach(r=>{ const taxable=tMpg>0?r.miles/tMpg:0; tTax+=(taxable-r.gallons)*r.rate; });
-  const tot={miles:tMiles, gal:tGal, mpg:tMpg, tax:tTax};
   const editing=iftaEditId!=null;
   const editRow=editing?(q.rows||[]).find(x=>x.id===iftaEditId):null;
   const tableRows = combined.length ? combined.map(r=>{
-    const taxable = tMpg>0 ? r.miles/tMpg : 0;
-    const rt=(taxable-r.gallons)*r.rate;
-    const rtColor = rt>0?'var(--del)':(rt<0?'var(--accent)':'var(--muted)');
     const delBtn = r.id?`<button class="m-del" onclick="event.stopPropagation();delIFTA('${r.id}')" title="${t('del')}">✕</button>`:'';
     return `<tr style="cursor:pointer" onclick="iftaEditState('${r.juris}')">
       <td style="font-weight:700">${esc(r.juris)}</td>
-      <td class="num">${miFmt(r.miles||0)}</td>
       <td class="num">${galFmt(r.gallons||0)}</td>
-      <td class="num">${(r.rate||0)?'$'+(r.rate).toFixed(3):'—'}</td>
-      <td class="num" style="font-weight:700;color:${rtColor}">${rt<0?'+':''}${money(Math.abs(rt))}</td>
       <td class="num">${delBtn}</td>
     </tr>`;
-  }).join('') : `<tr><td colspan="6" class="detail-empty">${t('iftaEmpty')}</td></tr>`;
-  const taxColor = tot.tax>0?'var(--del)':(tot.tax<0?'var(--accent)':'var(--text)');
+  }).join('') : `<tr><td colspan="3" class="detail-empty">${t('iftaEmpty')}</td></tr>`;
   p.innerHTML=`
     <div class="detail-head">
       <button class="detail-back" onclick="closeIFTA()">← ${t('back')}</button>
@@ -1446,10 +1470,7 @@ function renderIFTA(){
       <button class="navbtn" onclick="iftaNavQuarter(1)">▶</button>
     </div>
     <div class="detail-summary">
-      <div class="detail-sum-box"><div class="lbl">${t('iftaTotMiles')}</div><div class="val">${miFmt(tot.miles)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('iftaTotGal')}</div><div class="val">${galFmt(tot.gal)}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${t('iftaMpg')}</div><div class="val" style="color:var(--accent)">${tot.mpg?tot.mpg.toFixed(2):'—'}</div></div>
-      <div class="detail-sum-box"><div class="lbl">${tot.tax<0?t('iftaCredit'):t('iftaTaxDue')}</div><div class="val" style="color:${taxColor}">${tot.tax<0?'+':''}${money(Math.abs(tot.tax))}</div></div>
+      <div class="detail-sum-box"><div class="lbl">${t('iftaTotGal')}</div><div class="val" style="color:var(--accent)">${galFmt(tGal)}</div></div>
     </div>
     <div class="card">
       <div class="row">
@@ -1468,21 +1489,17 @@ function renderIFTA(){
         </div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div style="flex:1"><label>${t('iftaMiles')}</label><input id="iMiles" type="number" inputmode="decimal" value="${editRow?(editRow.miles||''):''}"></div>
-        <div style="flex:1"><label>${t('iftaRate')}</label><input id="iRate" type="number" inputmode="decimal" step="0.001" value="${editRow&&editRow.rate?editRow.rate:''}"></div>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button class="add" style="flex:1 1 auto" onclick="addIFTA()">${editing?t('saveExp'):t('add')}</button>
+        <div style="flex:1"><label>${t('iftaGallons')}</label><input id="iGal" type="number" inputmode="decimal" value="${editRow&&editRow.gallons?editRow.gallons:''}"></div>
+        <button class="add" style="flex:0 0 auto" onclick="addIFTA()">${editing?t('saveExp'):t('add')}</button>
         <button class="daybtn" onclick="cancelIFTAEdit()" style="${editing?'':'display:none'}" title="${t('cancelEdit')}">✕</button>
       </div>
     </div>
     <div class="card" style="padding:6px 4px">
       <table>
-        <thead><tr><th>${t('iftaState')}</th><th class="num">${t('iftaMiles')}</th><th class="num">${t('iftaGallons')}</th><th class="num">${t('iftaRate')}</th><th class="num">${t('iftaTax')}</th><th></th></tr></thead>
+        <thead><tr><th>${t('iftaState')}</th><th class="num">${t('iftaGallons')}</th><th></th></tr></thead>
         <tbody>${tableRows}</tbody>
       </table>
-    </div>
-    <div style="color:var(--muted2);font-size:11px;line-height:1.5;padding:0 4px 10px">${t('iftaNote')}</div>`;
+    </div>`;
 }
 function setIFTAFuel(v){ iftaQData().fuel=v; iftaSave(); }
 function iftaMatches(qraw){
@@ -1528,19 +1545,18 @@ function iftaEditState(code){
 function addIFTA(){
   const juris=iftaResolveState();
   if(!juris){ const s=document.getElementById('iState'); if(s) s.focus(); return; }
-  const miles=parseFloat(document.getElementById('iMiles').value)||0;
-  const rate=parseFloat(document.getElementById('iRate').value)||0;
-  if(miles<=0 && rate<=0){ document.getElementById('iMiles').focus(); return; }
+  const gallons=parseFloat(document.getElementById('iGal').value)||0;
+  if(gallons<=0){ document.getElementById('iGal').focus(); return; }
   pushHistory();
   const q=iftaQData();
   if(iftaEditId){
     const r=(q.rows||[]).find(x=>x.id===iftaEditId);
-    if(r){ r.juris=juris; r.miles=miles; r.rate=rate; }
+    if(r){ r.juris=juris; r.gallons=gallons; }
     iftaEditId=null;
   } else {
     const existing=(q.rows||[]).find(x=>x.juris===juris);
-    if(existing){ existing.miles+=miles; if(rate>0) existing.rate=rate; }
-    else q.rows.push({ id:Date.now()+''+Math.random(), juris, miles, gallons:0, rate });
+    if(existing){ existing.gallons=(existing.gallons||0)+gallons; }
+    else q.rows.push({ id:Date.now()+''+Math.random(), juris, miles:0, gallons, rate:0 });
   }
   iftaSave(); renderIFTA();
 }
@@ -1660,7 +1676,7 @@ function renderDetail(){
   const feeAmt = owner ? companyFeeAmtForLoads(loads) : 0;
   const fixedTotal = owner ? exps.filter(e=>e.isFixed).reduce((a,x)=>a+x.amount,0) : 0;
   const eNonFixed = eTotal - fixedTotal;
-  const pumpTotal = owner ? exps.reduce((a,x)=>a+(x.pump||0),0) : 0;
+  const pumpTotal = owner ? fuels.filter(f=>matchPeriod(f.date, detailDesc)).reduce((a,f)=>a+(f.pump||0),0) : 0;
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
