@@ -158,6 +158,8 @@
   .stat-top { display:flex; align-items:flex-start; justify-content:space-between; gap:4px; }
   .stat-enter { flex:0 0 auto; background:var(--chip); color:var(--accent); border:none; border-radius:7px; width:24px; height:24px; font-size:13px; font-weight:800; cursor:pointer; line-height:1; }
   .stat-enter:hover { background:var(--accent); color:#fff; }
+  .maint-btn { background:var(--chip); color:var(--text); border:1px solid var(--border); border-radius:9px; padding:6px 12px; font-size:13px; font-weight:700; cursor:pointer; }
+  .maint-btn:hover { border-color:var(--accent); color:var(--accent); }
   .detail-page { position:fixed; inset:0; background:var(--bg); z-index:1000; overflow-y:auto; padding:14px; max-width:820px; margin:0 auto; }
   .detail-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; position:sticky; top:0; background:var(--bg); padding:4px 0; }
   .detail-back { flex:0 0 auto; background:var(--chip); color:var(--text); border:none; border-radius:9px; padding:8px 14px; font-size:15px; font-weight:700; cursor:pointer; }
@@ -227,6 +229,9 @@
 </div>
 
 <div class="card" id="expCard" style="display:none">
+  <div style="display:flex;justify-content:flex-end;margin-bottom:8px;">
+    <button class="maint-btn" id="maintBtn" onclick="openMaint()">🔧 <span id="maintBtnLbl"></span></button>
+  </div>
   <div class="cat-row" id="expCatRow"></div>
   <div class="row">
     <div style="flex:1 1 90px;min-width:0"><label id="lblExpAmt"></label><input id="expAmt" type="number" inputmode="decimal"/></div>
@@ -270,6 +275,7 @@
 <div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
 
 <div id="detailPage" class="detail-page" style="display:none"></div>
+<div id="maintPage" class="detail-page" style="display:none"></div>
 
 <script>
 (function(){
@@ -309,14 +315,14 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"მანქანა", carsShort:"მანქ.", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Paycheck", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა" },
   en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"cars", carsShort:"cars", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Paycheck", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description" }
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -332,6 +338,7 @@ let weekPage = 0;
 let appMode = 'driver';
 let expenses = [];
 let weeklyMileage = {};
+let maintenance = [];
 let EXP_CATS = ['Fuel','DEF','Toll'];
 let customCats = [];
 const hasStore = typeof window !== 'undefined' && window.storage;
@@ -373,7 +380,7 @@ function pushCloud(){
   if(!db || !cloudUid) return;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>{
-    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, updatedAt: Date.now() })
+    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, maintenance, updatedAt: Date.now() })
       .catch(e=>console.warn('cloud write failed', e));
   }, 400);
 }
@@ -389,10 +396,10 @@ function subscribeCloud(){
         if(Array.isArray(d.cars)) carsDriver=d.cars; if(Array.isArray(d.carsOwner)) carsOwner=d.carsOwner;
         if(d.settings){ settings=d.settings; normalizeSettings(); } if(Array.isArray(d.expenses)) expenses=d.expenses;
         if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
-        if(Array.isArray(d.customCats)) customCats=d.customCats;
+        if(Array.isArray(d.customCats)) customCats=d.customCats; if(Array.isArray(d.maintenance)) maintenance=d.maintenance;
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-        store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
+        store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance));
         document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
       } else { pushCloud(); }
     } else if(d){
@@ -401,10 +408,10 @@ function subscribeCloud(){
       if(d.settings){ settings=d.settings; normalizeSettings(); }
       if(Array.isArray(d.expenses)) expenses=d.expenses;
       if(d.weeklyMileage && typeof d.weeklyMileage==='object') weeklyMileage=d.weeklyMileage;
-      if(Array.isArray(d.customCats)) customCats=d.customCats;
+      if(Array.isArray(d.customCats)) customCats=d.customCats; if(Array.isArray(d.maintenance)) maintenance=d.maintenance;
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
-      store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats));
+      store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance));
       document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render();
     }
   }, err=>{ console.warn('snapshot error', err); });
@@ -477,6 +484,7 @@ function applyStaticLabels(){
   document.getElementById('lblEndMi').textContent = t('endMi');
   document.getElementById('lblWeekMi').textContent = t('weekMi');
   document.getElementById('lblFixedExp').textContent = t('fixedExpLbl');
+  document.getElementById('maintBtnLbl').textContent = t('maintList');
   document.getElementById('freqWeek').textContent = t('weekWord');
   document.getElementById('freqMonth').textContent = t('monthWord');
 }
@@ -493,6 +501,7 @@ async function load(){
   try{ const r=await store.get('expenses'); if(r) expenses=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('customCats'); if(r) customCats=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('weeklyMileage'); if(r) weeklyMileage=JSON.parse(r); }catch(e){}
+  try{ const r=await store.get('maintenance'); if(r) maintenance=JSON.parse(r); }catch(e){}
   try{ const r=await store.get('mode'); if(r==='owner'||r==='driver') appMode=r; }catch(e){}
   let changed=false;
   carsDriver = carsDriver.map(c=>{ if(!c.date){ c.date=c.deliveryDate||c.pickupDate||todayStr(); changed=true; } return c; })
@@ -1000,6 +1009,62 @@ function closeDetail(){
   document.body.style.overflow='';
   detailDesc=null;
 }
+
+// --- Maintenance List გვერდი ---
+function saveMaint(){ store.set('maintenance', JSON.stringify(maintenance)); pushCloud(); }
+function openMaint(){
+  const p=document.getElementById('maintPage');
+  p.innerHTML = `
+    <div class="detail-head">
+      <button class="detail-back" onclick="closeMaint()">← ${t('back')}</button>
+      <div class="detail-title">🔧 ${t('maintList')}</div>
+    </div>
+    <div class="card">
+      <div class="row">
+        <div style="flex:1 1 130px;min-width:0"><label>${t('date')}</label><input id="mDate" type="date"></div>
+        <div style="flex:0 0 90px"><label>${t('milesLbl')}</label><input id="mMiles" type="number" inputmode="numeric"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div style="flex:1 1 auto;min-width:0"><label>${t('maintDesc')}</label><input id="mDesc" type="text"></div>
+        <div style="flex:0 0 80px"><label>${t('priceCol')}</label><input id="mPrice" type="number" inputmode="decimal"></div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button class="add" style="flex:1 1 auto" onclick="addMaint()">${t('add')}</button>
+      </div>
+    </div>
+    <div id="maintTableWrap"></div>`;
+  document.getElementById('mDate').value=todayStr();
+  renderMaintTable();
+  p.style.display='block'; document.body.style.overflow='hidden'; window.scrollTo(0,0);
+}
+function closeMaint(){
+  document.getElementById('maintPage').style.display='none';
+  document.body.style.overflow='';
+}
+function renderMaintTable(){
+  const wrap=document.getElementById('maintTableWrap'); if(!wrap) return;
+  const rows=maintenance.slice().sort((a,b)=>a.date<b.date?1:-1);
+  if(!rows.length){ wrap.innerHTML=`<div class="detail-empty">${t('noEntries')}</div>`; return; }
+  const total=rows.reduce((s,x)=>s+(x.price||0),0);
+  wrap.innerHTML=`<table><thead><tr><th>${t('day')}</th><th class="num">mi</th><th>${t('maintDesc')}</th><th class="num">${t('priceCol')}</th><th></th></tr></thead><tbody>${
+    rows.map(x=>`<tr><td>${fmtDay(x.date)}</td><td class="num">${x.mileage!=null?x.mileage:''}</td><td>${esc(x.desc||'')}</td><td class="num" style="font-weight:700">${money(x.price||0)}</td><td class="num"><button class="del" onclick="delMaint('${x.id}')">${t('del')}</button></td></tr>`).join('')}
+    <tr class="cat-grp-row"><td colspan="3">${t('total')}</td><td class="num">${money(total)}</td><td></td></tr>
+  </tbody></table>`;
+}
+function addMaint(){
+  const price=parseFloat(document.getElementById('mPrice').value)||0;
+  const date=document.getElementById('mDate').value||todayStr();
+  const mVal=document.getElementById('mMiles').value;
+  const mileage=mVal===''?null:parseFloat(mVal);
+  const desc=document.getElementById('mDesc').value.trim();
+  if(price<=0 && !desc){ document.getElementById('mDesc').focus(); return; }
+  maintenance.push({ id:Date.now()+''+Math.random(), date, mileage, desc, price });
+  document.getElementById('mPrice').value=''; document.getElementById('mMiles').value=''; document.getElementById('mDesc').value='';
+  saveMaint(); renderMaintTable();
+  document.getElementById('mDesc').focus();
+}
+function delMaint(id){ maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderMaintTable(); }
+
 function renderDetail(){
   if(!detailDesc) return;
   const owner = appMode==='owner';
