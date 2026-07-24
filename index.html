@@ -1130,7 +1130,10 @@ function historyLatestAt(history, dateStr){
 }
 function companyFeeRateFor(dateStr){
   const h=historyLatestAt(settings.companyFeeHistory, dateStr);
-  return h ? h.value : 0;
+  if(h) return h.value;
+  const hist=settings.companyFeeHistory||[];
+  if(hist.length){ let earliest=hist[0]; hist.forEach(x=>{ if(x.date<earliest.date) earliest=x; }); return earliest.value; }
+  return 0;
 }
 function syncCompanyFeeUI(){
   const cur=historyLatestAt(settings.companyFeeHistory, todayStr());
