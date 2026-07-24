@@ -539,7 +539,11 @@ function parseMi(str){ const v=parseFloat(String(str==null?'':str).replace(/[\s,
 function esc(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function routeStates(r){ if(!r) return ''; const st=r.match(/\b[A-Z]{2}\b/g); if(st&&st.length>=2) return st[0]+' → '+st[st.length-1]; return r; }
 function dpmFmt(v){ return '$'+(v||0).toFixed(2); }
-function todayStr(){ return new Date().toISOString().slice(0,10); }
+function todayStr(){
+  try{
+    return new Intl.DateTimeFormat('en-CA',{timeZone:'America/Chicago',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  }catch(e){ return new Date().toISOString().slice(0,10); }
+}
 function selDate(){ const el=document.getElementById('date'); return (el&&el.value)||todayStr(); }
 function valid(s){ return s && !isNaN(new Date(s+'T00:00:00').getTime()); }
 function addDays(s,n){ const d=new Date(s+'T00:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
@@ -1129,11 +1133,8 @@ function historyLatestAt(history, dateStr){
   return best;
 }
 function companyFeeRateFor(dateStr){
-  const h=historyLatestAt(settings.companyFeeHistory, dateStr);
-  if(h) return h.value;
-  const hist=settings.companyFeeHistory||[];
-  if(hist.length){ let earliest=hist[0]; hist.forEach(x=>{ if(x.date<earliest.date) earliest=x; }); return earliest.value; }
-  return 0;
+  const h=historyLatestAt(settings.companyFeeHistory, todayStr());
+  return h ? h.value : 0;
 }
 function syncCompanyFeeUI(){
   const cur=historyLatestAt(settings.companyFeeHistory, todayStr());
