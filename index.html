@@ -1847,8 +1847,7 @@ function ownerRenderStats(){
     const g=gArr.reduce((a,c)=>a+c.price,0), e=eArr.reduce((a,x)=>a+x.amount,0);
     const fee=companyFeeAmtForLoads(gArr);
     const mi=periodMiles(desc);
-    const pump=fuels.filter(f=>matchPeriod(f.date, desc)).reduce((a,f)=>a+(f.pump||0),0);
-    return {l,g,e,fee,mi,pump,n:g-fee-e,desc};
+    return {l,g,e,fee,mi,n:g-fee-e,desc};
   };
   const oyears=new Set();
   carsOwner.forEach(c=>oyears.add(c.date.slice(0,4)));
@@ -1870,7 +1869,6 @@ function ownerRenderStats(){
       <div class="share-main">${money(o.n)}</div>
       <div class="gross-sub">Gross: ${money(o.g)}</div>
       <div class="cnt">${t('totalExp')}: −${money(o.e+o.fee)}</div>
-      ${o.pump>0?`<div class="cnt">${t('pumpLbl')}: ${money(o.pump)}</div>`:''}
       ${o.mi>0?`<div class="cnt">$/m: ${dpmFmt(o.g/o.mi)}</div>`:''}
     </div>`).join('');
 }
