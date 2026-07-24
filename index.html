@@ -33,13 +33,9 @@
   .topleft { display:flex; align-items:center; gap:6px; min-width:0; flex:1 1 auto; }
   h1 { font-size:16px; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; min-width:0; }
   .modesw-mini { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; flex:0 0 auto; }
-  .freq-sw { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; height:38px; }
-  .freq-sw button { background:var(--card); color:var(--muted); border:none; padding:0 6px; font-size:10px; font-weight:700; cursor:pointer; }
-  .freq-sw button.active { background:var(--accent); color:#fff; }
   .modesw-mini button { background:var(--card); color:var(--muted); border:none; padding:5px 9px; font-size:15px; cursor:pointer; line-height:1; }
   .modesw-mini button.active { background:var(--tab-active-bg); }
   .modesw-mini button#modeOwner.active { background:#f5b833; }
-  .pro-badge { display:inline-block; background:#f5b833; color:#3a2a00; font-size:9px; font-weight:800; letter-spacing:.4px; border-radius:5px; padding:1px 5px; margin-left:6px; vertical-align:middle; }
   .topright { display:flex; align-items:center; gap:6px; flex:0 0 auto; }
   .iconbtn { background:var(--card); border:1px solid var(--border); border-radius:9px; padding:5px 9px; font-size:14px; cursor:pointer; line-height:1; }
   .langsw { display:flex; border:1px solid var(--border); border-radius:9px; overflow:hidden; }
@@ -104,8 +100,6 @@
   .tabs button { background:var(--chip); color:var(--btn-text); padding:6px 11px; font-size:12px; border:none; border-radius:9px; cursor:pointer; font-weight:600; }
   .tabs button.active { background:var(--tab-active-bg); color:var(--tab-active-text); }
   .empty { text-align:center; color:var(--muted2); padding:20px; }
-  .reset { background:none; color:var(--muted2); font-size:11px; padding:4px; float:right; border:none; cursor:pointer; }
-  .reset:hover { color:var(--del); }
   .week-nav { display:flex; justify-content:space-between; margin-bottom:9px; gap:6px; }
   .navbtn { background:var(--chip); color:var(--btn-text); padding:7px 10px; border:none; border-radius:9px; cursor:pointer; font-size:12px; font-weight:600; }
   .navbtn:hover { background:var(--chip-hover); }
@@ -115,7 +109,6 @@
   .week-col.current { border-color:var(--accent); background:var(--cur-bg); }
   .week-col.current .week-head { background:var(--cur-head); }
   .week-head { background:var(--head-bg); padding:7px 9px; font-weight:700; font-size:12px; }
-  .wk-yr { color:var(--muted2); font-weight:500; font-size:11px; }
   .wk-num { color:var(--accent); }
   .wk-range { color:var(--muted); font-weight:500; font-size:11px; }
   .week-body { padding:1px 0; flex:1 1 auto; }
@@ -124,8 +117,6 @@
   .day-row:last-child { border-bottom:none; }
   .day-label { font-size:11px; color:var(--muted); margin-bottom:4px; }
   .day-prices { display:flex; flex-direction:column; gap:5px; align-items:stretch; }
-  .day-prices.row-wrap { flex-direction:row; flex-wrap:wrap; align-items:center; }
-  .day-prices.row-wrap .pchip { flex:0 0 auto; }
   .day-prices.split-lr { flex-direction:row; align-items:flex-start; gap:6px; }
   .day-prices.split-lr .lr-col { flex:1 1 0; min-width:0; display:flex; flex-direction:column; gap:4px; align-items:flex-start; }
   .day-prices.split-lr .pchip { flex:0 0 auto; }
@@ -244,7 +235,7 @@
     .stat .gross-sub, .stat .cnt { font-size:9.5px; }
     .week-grid { gap:5px; }
     .week-head { font-size:10px; padding:5px 6px; }
-    .wk-range, .wk-yr { font-size:10px; }
+    .wk-range { font-size:10px; }
     .day-row, .day-row-owner { padding:5px 6px; }
     .day-label { font-size:10px; }
     .day-row-owner .day-label { flex:0 0 26px; }
@@ -727,9 +718,8 @@ function goToday(){
   const dEl=document.getElementById('date'); if(dEl) dEl.value=todayStr();
   render();
 }
-function resetAll(){ if(confirm(t('confirmClear'))){ setActiveCars([]); saveActiveCars(); render(); } }
 function renderStats(){
-  const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
+  const td=todayStr(), yr=td.slice(0,4);
   const wk=anchorMonFor(carsDriver), lastWk=addDays(wk,-7);
   const mk=anchorMonthFor(carsDriver), prevMk=prevMonthKey(mk);
   const filt=(fn)=>{ const arr=carsDriver.filter(fn); return {g:arr.reduce((a,c)=>a+c.price,0), n:arr.length}; };
@@ -1060,47 +1050,7 @@ function fixedEntryHTML(e, variant){
     ? `<div class="exp-item fixed-item"><span>🔒 ${esc(e.cat)}</span><span class="exp-amt">${inp}</span></div>`
     : `<div class="exp-item fixed-item"><span onclick="${click}" style="cursor:pointer">🔒 ${esc(e.cat)}</span><span class="exp-amt">−${money(e.amount)}</span></div>`;
 }
-function saveFixedExpWeek(){ /* legacy no-op */ }
-function saveFixedExpMonth(){ /* legacy no-op */ }
 function perMileRateFor(dateStr){ const h=historyLatestAt(settings.perMileHistory, dateStr); return h?h.rate:0; }
-function perMileCostFor(desc){
-  let total=0;
-  Object.keys(weeklyMileage).forEach(mon=>{
-    const r=weeklyMileage[mon]; if(!r || r.start==null || r.end==null) return;
-    let inP=false;
-    if(desc.k==='week') inP=(mon===desc.v);
-    else if(desc.k==='month') inP=(monthKey(mon)===desc.v);
-    else if(desc.k==='year') inP=(mon.slice(0,4)===desc.v);
-    else inP=true;
-    if(!inP) return;
-    total += Math.max(0, r.end-r.start)*perMileRateFor(mon);
-  });
-  return total;
-}
-function fixedCostFor(desc){
-  const dates=[]; carsOwner.forEach(c=>{ if(matchPeriod(c.date, desc)) dates.push(c.date); }); expenses.forEach(e=>{ if(matchPeriod(e.date, desc)) dates.push(e.date); });
-  if(!dates.length) return 0;
-  let total=0;
-  const weekAmts=new Map();
-  dates.forEach(d=>{
-    const h=historyLatestAt(settings.fixedWeekHistory, d);
-    if(!h || !h.amount) return;
-    const bk=mondayOf(d);
-    if(!weekAmts.has(bk)) weekAmts.set(bk, h.amount);
-  });
-  weekAmts.forEach(v=>total+=v);
-  if(desc.k!=='week'){
-    const monthAmts=new Map();
-    dates.forEach(d=>{
-      const h=historyLatestAt(settings.fixedMonthHistory, d);
-      if(!h || !h.amount) return;
-      const bk=monthKey(d);
-      if(!monthAmts.has(bk)) monthAmts.set(bk, h.amount);
-    });
-    monthAmts.forEach(v=>total+=v);
-  }
-  return total;
-}
 function fixedAmountForWeek(bk){
   if(settings.fixedWeekOverrides && Object.prototype.hasOwnProperty.call(settings.fixedWeekOverrides, bk)) return settings.fixedWeekOverrides[bk]||0;
   const h=historyLatestAt(settings.fixedWeekHistory, addDays(bk,6));
@@ -1389,10 +1339,6 @@ function closeMaint(){
 const IFTA_JURIS=[
   {g:'US', items:[['AL','Alabama'],['AZ','Arizona'],['AR','Arkansas'],['CA','California'],['CO','Colorado'],['CT','Connecticut'],['DE','Delaware'],['FL','Florida'],['GA','Georgia'],['ID','Idaho'],['IL','Illinois'],['IN','Indiana'],['IA','Iowa'],['KS','Kansas'],['KY','Kentucky'],['LA','Louisiana'],['ME','Maine'],['MD','Maryland'],['MA','Massachusetts'],['MI','Michigan'],['MN','Minnesota'],['MS','Mississippi'],['MO','Missouri'],['MT','Montana'],['NE','Nebraska'],['NV','Nevada'],['NH','New Hampshire'],['NJ','New Jersey'],['NM','New Mexico'],['NY','New York'],['NC','North Carolina'],['ND','North Dakota'],['OH','Ohio'],['OK','Oklahoma'],['OR','Oregon'],['PA','Pennsylvania'],['RI','Rhode Island'],['SC','South Carolina'],['SD','South Dakota'],['TN','Tennessee'],['TX','Texas'],['UT','Utah'],['VT','Vermont'],['VA','Virginia'],['WA','Washington'],['WV','West Virginia'],['WI','Wisconsin'],['WY','Wyoming']]}
 ];
-function iftaStateName(code){ for(const grp of IFTA_JURIS){ for(const it of grp.items){ if(it[0]===code) return it[1]; } } return code; }
-function iftaStateOptions(sel){
-  return IFTA_JURIS.map(grp=>`<optgroup label="${grp.g}">`+grp.items.map(it=>`<option value="${it[0]}"${it[0]===sel?' selected':''}>${it[0]} — ${esc(it[1])}</option>`).join('')+`</optgroup>`).join('');
-}
 function currentQuarter(){ return quarterOf(todayStr()); }
 function quarterOf(dateStr){ const q=Math.floor((parseInt(dateStr.slice(5,7))-1)/3)+1; return dateStr.slice(0,4)+'-Q'+q; }
 function iftaFuelGallons(qKey){
@@ -1423,22 +1369,12 @@ function expResolveState(){
 function iftaQLabel(key){ const p=key.split('-Q'); return 'Q'+p[1]+' '+p[0]; }
 function iftaQData(){ if(!ifta[iftaQuarter]) ifta[iftaQuarter]={fuel:'Diesel', rows:[]}; return ifta[iftaQuarter]; }
 function iftaSave(){ store.set('ifta', JSON.stringify(ifta)); pushCloud(); }
-function iftaTotals(q){
-  const rows=(q&&q.rows)||[];
-  const miles=rows.reduce((a,r)=>a+(r.miles||0),0);
-  const gal=rows.reduce((a,r)=>a+(r.gallons||0),0);
-  const mpg = gal>0 ? miles/gal : 0;
-  let tax=0;
-  rows.forEach(r=>{ const taxable = mpg>0 ? (r.miles||0)/mpg : 0; tax += (taxable-(r.gallons||0))*(r.rate||0); });
-  return {miles, gal, mpg, tax};
-}
 function iftaNavQuarter(delta){
   let p=iftaQuarter.split('-Q'); let y=parseInt(p[0]), q=parseInt(p[1])+delta;
   while(q<1){ q+=4; y--; } while(q>4){ q-=4; y++; }
   iftaQuarter=y+'-Q'+q; iftaEditId=null; renderIFTA();
 }
 function galFmt(n){ return grp((n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:1})); }
-function fuelInfo(e){ const p=[]; if(e.state) p.push(esc(e.state)); if(e.gallons) p.push(galFmt(e.gallons)+'g'); return p.join(' '); }
 function renderIFTA(){
   const p=document.getElementById('iftaPage'); if(!p) return;
   if(!iftaQuarter) iftaQuarter=currentQuarter();
@@ -1524,7 +1460,7 @@ function iftaFilter(){
 function iftaPickState(code){
   const inp=document.getElementById('iState'); if(inp) inp.value=code;
   const list=document.getElementById('iStateList'); if(list) list.style.display='none';
-  const m=document.getElementById('iMiles'); if(m) m.focus();
+  const m=document.getElementById('iGal'); if(m) m.focus();
 }
 function iftaFilterEnter(){
   const m=iftaMatches(document.getElementById('iState').value);
@@ -1564,7 +1500,7 @@ function addIFTA(){
 }
 function editIFTA(id){
   iftaEditId=id; renderIFTA();
-  const el=document.getElementById('iMiles'); if(el) el.focus();
+  const el=document.getElementById('iGal'); if(el) el.focus();
 }
 function cancelIFTAEdit(){ iftaEditId=null; renderIFTA(); }
 function delIFTA(id){
@@ -1736,7 +1672,7 @@ function renderDetail(){
   `;
 }
 function ownerRenderStats(){
-  const td=todayStr(), yr=td.slice(0,4), prevYr=(parseInt(yr)-1)+'';
+  const td=todayStr(), yr=td.slice(0,4);
   const wk=anchorMonFor(carsOwner), lastWk=addDays(wk,-7);
   const combExp=allExps();
   const mk=anchorMonthFor([...carsOwner, ...combExp]), prevMk=prevMonthKey(mk);
