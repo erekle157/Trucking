@@ -176,8 +176,8 @@
   .detail-head { display:flex; align-items:center; gap:10px; margin-bottom:12px; position:sticky; top:0; background:var(--bg); padding:4px 0; }
   .detail-back { flex:0 0 auto; background:var(--chip); color:var(--text); border:none; border-radius:9px; padding:8px 14px; font-size:15px; font-weight:700; cursor:pointer; }
   .detail-title { font-size:18px; font-weight:800; }
-  .detail-summary { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px; }
-  .detail-sum-box { flex:1 1 100px; background:var(--card); border-radius:11px; padding:10px 12px; box-shadow:0 1px 3px var(--shadow); }
+  .detail-summary { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .detail-sum-box { background:var(--card); border-radius:11px; padding:10px 12px; box-shadow:0 1px 3px var(--shadow); }
   .detail-sum-box .lbl { font-size:11px; color:var(--muted2); }
   .detail-sum-box .val { font-size:18px; font-weight:800; margin-top:2px; }
   .detail-section-title { font-size:14px; font-weight:700; margin:16px 0 6px; color:var(--muted); }
@@ -248,7 +248,7 @@
     button.add { padding:9px 11px; font-size:14px; }
     .daybtn { padding:0 8px; font-size:14px; }
     .maint-btn { padding:6px 9px; font-size:12px; }
-    .detail-sum-box { flex:1 1 84px; padding:9px 10px; }
+    .detail-sum-box { padding:9px 10px; }
     .detail-sum-box .val { font-size:16px; }
     .detail-title { font-size:16px; }
     .cat-group { flex:1 1 130px; min-width:130px; }
