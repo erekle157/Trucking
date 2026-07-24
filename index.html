@@ -663,7 +663,7 @@ function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=documen
 function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>100) undoStack.shift(); redoStack=[]; updateUndoRedo(); }
 function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); applySnapshot(undoStack.pop()); updateUndoRedo(); }
 function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); applySnapshot(redoStack.pop()); updateUndoRedo(); }
-function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); }
+function changeDate(delta){ const el=document.getElementById('date'); el.value=addDays(el.value||todayStr(),delta); syncExpDate(); if(appMode==='owner'){ loadMileageInputs(); syncCompanyFeeUI(); } render(); }
 function syncExpDate(){ const dEl=document.getElementById('date'), eEl=document.getElementById('expDate'); if(dEl&&eEl&&dEl.value){ eEl.value=dEl.value; } }
 let editingCarId=null;
 function addCar(){
@@ -712,7 +712,7 @@ function navWeek(d){
   const dEl=document.getElementById('date');
   if(dEl && dEl.value) dEl.value=addDays(dEl.value, -7*d);
   syncExpDate();
-  if(appMode==='owner') loadMileageInputs();
+  if(appMode==='owner'){ loadMileageInputs(); syncCompanyFeeUI(); }
   render();
 }
 function goToday(){
@@ -720,6 +720,7 @@ function goToday(){
   const wp=Math.round((new Date(anchor+'T00:00:00')-new Date(todayMon+'T00:00:00'))/(7*86400000));
   weekPage=Math.max(-8, wp);
   const dEl=document.getElementById('date'); if(dEl) dEl.value=todayStr();
+  if(appMode==='owner') syncCompanyFeeUI();
   render();
 }
 function renderStats(){
@@ -868,9 +869,9 @@ document.getElementById('companyFee').addEventListener('change', e=>{
   const v=e.target.value; const val=v===''?null:parseFloat(v);
   settings.companyFee = v===''?'':val;
   if(val!=null && !isNaN(val)){
-    const today=todayStr();
-    const existing=settings.companyFeeHistory.find(h=>h.date===today);
-    if(existing) existing.value=val; else settings.companyFeeHistory.push({date:today, value:val});
+    const wk=mondayOf(selDate());
+    const existing=settings.companyFeeHistory.find(h=>h.date===wk);
+    if(existing) existing.value=val; else settings.companyFeeHistory.push({date:wk, value:val});
   }
   saveSettings(); render();
 });
@@ -887,7 +888,7 @@ document.getElementById('companyFee').addEventListener('change', e=>{
     }
   }, {passive:true});
 })();
-document.getElementById('date').addEventListener('change', ()=>{ syncExpDate(); if(appMode==='owner') loadMileageInputs(); render(); });
+document.getElementById('date').addEventListener('change', ()=>{ syncExpDate(); if(appMode==='owner'){ loadMileageInputs(); syncCompanyFeeUI(); } render(); });
 // --- სურათიდან წაკითხვა (OCR, ტელეფონშივე) ---
 let tessLoading=null;
 function ensureTesseract(){
@@ -1133,11 +1134,11 @@ function historyLatestAt(history, dateStr){
   return best;
 }
 function companyFeeRateFor(dateStr){
-  const h=historyLatestAt(settings.companyFeeHistory, todayStr());
+  const h=historyLatestAt(settings.companyFeeHistory, dateStr);
   return h ? h.value : 0;
 }
 function syncCompanyFeeUI(){
-  const cur=historyLatestAt(settings.companyFeeHistory, todayStr());
+  const cur=historyLatestAt(settings.companyFeeHistory, mondayOf(selDate()));
   const el=document.getElementById('companyFee'); if(el) el.value = cur ? cur.value : '';
 }
 function companyFeeAmtForLoads(loadsArr){
