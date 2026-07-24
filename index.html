@@ -1650,13 +1650,14 @@ function renderDetail(){
         const ta=byCat[a].reduce((s,x)=>s+x.amount,0), tb=byCat[b].reduce((s,x)=>s+x.amount,0);
         return tb-ta;
       });
+      const collapsed = (detailDesc.k==='year' || detailDesc.k==='all');
       const groups=catKeys.map(cat=>{
         const items=byCat[cat].sort((a,b)=>a.date<b.date?-1:1);
         const tot=items.reduce((s,x)=>s+x.amount,0);
-        const lines=items.map(e=>`<div class="cat-group-line"><span>${fmtDay(e.date,'weekday')}</span><span style="color:var(--del)">−${money(e.amount)}</span></div>`).join('');
+        const lines=collapsed ? '' : items.map(e=>`<div class="cat-group-line"><span>${fmtDay(e.date,'weekday')}</span><span style="color:var(--del)">−${money(e.amount)}</span></div>`).join('');
         return `<div class="cat-group">
           <div class="cat-group-head"><span>${esc(cat)}</span><span style="color:var(--del)">−${money(tot)}</span></div>
-          <div class="cat-group-items">${lines}</div>
+          ${lines?`<div class="cat-group-items">${lines}</div>`:''}
         </div>`;
       }).join('');
       expTable = `<div class="cat-group-row">${groups}</div>`;
