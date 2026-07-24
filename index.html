@@ -1608,6 +1608,29 @@ function doItemDelete(type,id){
   else if(type==='exp') delExpense(id);
   else if(type==='maint') delMaint(id);
 }
+function monthlyReportTable(loadsArr, expsArr){
+  const mkSet=new Set();
+  loadsArr.forEach(c=>mkSet.add(monthKey(c.date)));
+  expsArr.forEach(e=>mkSet.add(monthKey(e.date)));
+  const mks=[...mkSet].sort().reverse();
+  if(!mks.length) return `<div class="detail-empty">${t('noEntries')}</div>`;
+  const rows=mks.map(mk=>{
+    const ml=loadsArr.filter(c=>monthKey(c.date)===mk);
+    const me=expsArr.filter(e=>monthKey(e.date)===mk);
+    const gr=ml.reduce((a,c)=>a+c.price,0);
+    const outc=companyFeeAmtForLoads(ml)+me.reduce((a,x)=>a+x.amount,0);
+    const prof=gr-outc;
+    const lbl=new Date(mk+'-01T00:00:00').toLocaleDateString(loc(),{month:'short',year:'numeric'});
+    return `<tr>
+      <td style="font-weight:700">${lbl}</td>
+      <td class="num" style="color:var(--accent)">${money(gr)}</td>
+      <td class="num" style="color:var(--del)">−${money(outc)}</td>
+      <td class="num" style="font-weight:700;color:${prof>=0?'var(--accent)':'var(--del)'}">${prof<0?'−':''}${money(Math.abs(prof))}</td>
+    </tr>`;
+  }).join('');
+  const profitLbl = lang==='ka'?'მოგება':'Profit';
+  return `<table><thead><tr><th>${t('monthWord')}</th><th class="num">Gross</th><th class="num">${t('totalExp')}</th><th class="num">${profitLbl}</th></tr></thead><tbody>${rows}</tbody></table>`;
+}
 function renderDetail(){
   if(!detailDesc) return;
   const owner = appMode==='owner';
@@ -1637,10 +1660,13 @@ function renderDetail(){
       <div class="detail-sum-box"><div class="lbl">${t('cars')}</div><div class="val">${loads.length}</div></div>
     </div>`;
   }
-  const loadsTable = loads.length
-    ? `<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">mi</th><th class="num">${t('priceCol')}</th></tr></thead><tbody>${
-        loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles?miFmt(c.miles):''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
-    : `<div class="detail-empty">${t('noEntries')}</div>`;
+  const yearAll = (detailDesc.k==='year' || detailDesc.k==='all');
+  const loadsTable = (owner && yearAll)
+    ? monthlyReportTable(loads, exps)
+    : (loads.length
+      ? `<table><thead><tr><th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">mi</th><th class="num">${t('priceCol')}</th></tr></thead><tbody>${
+          loads.map(c=>`<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${c.miles?miFmt(c.miles):''}</td><td class="num" style="color:var(--accent);font-weight:700">${money(c.price)}</td></tr>`).join('')}</tbody></table>`
+      : `<div class="detail-empty">${t('noEntries')}</div>`);
   let expSection='';
   if(owner){
     let expTable;
@@ -1672,7 +1698,7 @@ function renderDetail(){
       <div class="detail-title">${esc(detailLabel)}</div>
     </div>
     ${summary}
-    <div class="detail-section-title">${t('priceCol')} (${loads.length})</div>
+    <div class="detail-section-title">${(owner && yearAll) ? t('byMonth') : (t('priceCol')+' ('+loads.length+')')}</div>
     ${loadsTable}
     ${expSection}
   `;
