@@ -371,6 +371,7 @@
 <div id="kbBar"><button id="kbAdd" class="kb-add"></button></div>
 <div id="detailPage" class="detail-page" style="display:none"></div>
 <div id="maintPage" class="detail-page" style="display:none"></div>
+<div id="catPage" class="detail-page" style="display:none"></div>
 <div id="iftaPage" class="detail-page" style="display:none"></div>
 <div id="actionSheet" class="action-sheet" style="display:none">
   <div class="action-sheet-bg" onclick="closeActionSheet()"></div>
@@ -440,7 +441,7 @@ let weeklyMileage = {};
 let maintenance = [];
 let ifta = {};
 let fuels = [];
-let iftaQuarter = null, iftaEditId = null;
+let iftaQuarter = null, iftaExpanded = null, iftaEditKey = null;
 let EXP_CATS = ['Fuel','DEF','Toll'];
 let customCats = [];
 const hasStore = typeof window !== 'undefined' && window.storage;
@@ -658,6 +659,7 @@ function applySnapshot(s){
   populateCats(); render();
   if(document.getElementById('maintPage').style.display==='block') renderMaintTable();
   if(document.getElementById('iftaPage').style.display==='block') renderIFTA();
+  if(document.getElementById('catPage').style.display==='block') renderCatPage();
 }
 function updateUndoRedo(){ const u=document.getElementById('undoBtn'), r=document.getElementById('redoBtn'); if(u)u.disabled=!undoStack.length; if(r)r.disabled=!redoStack.length; }
 function pushHistory(){ undoStack.push(snapshot()); if(undoStack.length>100) undoStack.shift(); redoStack=[]; updateUndoRedo(); }
@@ -720,6 +722,7 @@ function goToday(){
   const wp=Math.round((new Date(anchor+'T00:00:00')-new Date(todayMon+'T00:00:00'))/(7*86400000));
   weekPage=Math.max(-8, wp);
   const dEl=document.getElementById('date'); if(dEl) dEl.value=todayStr();
+  syncExpDate();
   if(appMode==='owner') syncCompanyFeeUI();
   render();
 }
@@ -1198,6 +1201,18 @@ function addExpense(){
     const pump=parseFloat(document.getElementById('expPump').value)||0;
     const gallons=parseFloat(document.getElementById('expGal').value)||0;
     const state=expResolveState();
+    if(editingFuelId){
+      pushHistory();
+      const idx=fuels.findIndex(f=>f.id===editingFuelId);
+      if(idx>=0){
+        if(pump<=0 && gallons<=0 && !state) fuels.splice(idx,1);
+        else { fuels[idx].pump=pump; fuels[idx].gallons=gallons; fuels[idx].state=state; fuels[idx].date=date; }
+      }
+      editingFuelId=null;
+      ['expFuel','expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
+      saveFuels(); updateExpAddBtn(); render();
+      return;
+    }
     if(fuelAmt<=0 && pump<=0 && gallons<=0){ const fe=document.getElementById('expFuel'); if(fe) fe.focus(); return; }
     pushHistory();
     if(editingExpId){
@@ -1243,7 +1258,7 @@ function editExpense(id){
   document.getElementById('expAmt').focus();
 }
 function cancelEditExpense(){
-  editingExpId=null;
+  editingExpId=null; editingFuelId=null;
   document.getElementById('expAmt').value='';
   document.getElementById('expDate').value=todayStr();
   ['expFuel','expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
@@ -1252,9 +1267,9 @@ function cancelEditExpense(){
 }
 function updateExpAddBtn(){
   const btn=document.getElementById('expAdd'); if(!btn) return;
-  btn.textContent = editingExpId ? t('saveExp') : t('addExp');
+  btn.textContent = (editingExpId||editingFuelId) ? t('saveExp') : t('addExp');
   const cbtn=document.getElementById('expCancelEdit');
-  if(cbtn) cbtn.style.display = editingExpId ? '' : 'none';
+  if(cbtn) cbtn.style.display = (editingExpId||editingFuelId) ? '' : 'none';
 }
 function delExpense(id){ if(editingExpId===id) cancelEditExpense(); pushHistory(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); render(); }
 // --- დეტალური გვერდი (drill-down) ---
@@ -1289,6 +1304,74 @@ function closeDetail(){
   hidePage('detailPage');
   detailDesc=null;
 }
+let catPageCat=null, entrySrc='cat', catEditKey=null;
+function openCatPage(cat){ entrySrc='cat'; catPageCat=cat; renderCatPage(); showPage('catPage'); }
+function openGrossPage(){ entrySrc='gross'; renderCatPage(); showPage('catPage'); }
+function openExpPage(){ entrySrc='exp'; renderCatPage(); showPage('catPage'); }
+function openFixedPage(){ entrySrc='fixed'; renderCatPage(); showPage('catPage'); }
+function openPumpPage(){ entrySrc='pump'; renderCatPage(); showPage('catPage'); }
+function closeCatPage(){ hidePage('catPage'); catPageCat=null; catEditKey=null; }
+function renderCatPage(){
+  const p=document.getElementById('catPage'); if(!p||!detailDesc) return;
+  let title='', head='', rows='', tot=0, totColor='var(--del)', neg='−';
+  const amtInput=(id,val)=>`<input id="catEditInput" type="number" inputmode="decimal" value="${val}" style="width:92px;padding:4px 6px;font-size:14px;text-align:right" onkeydown="if(event.key==='Enter'){event.preventDefault();catInlineSave('${escJS(id)}')}" onblur="catInlineSave('${escJS(id)}')">`;
+  if(entrySrc==='gross'){
+    title='Gross'; totColor='var(--accent)'; neg='';
+    const loads=carsOwner.filter(c=>matchPeriod(c.date, detailDesc)).sort((a,b)=>a.date<b.date?1:-1);
+    tot=loads.reduce((s,c)=>s+c.price,0);
+    head=`<th>${t('day')}</th><th>${t('routeCol')}</th><th class="num">${t('priceCol')}</th><th></th>`;
+    rows=loads.length?loads.map(c=>{ const ed=c.id===catEditKey;
+      return `<tr><td>${fmtDay(c.date)}</td><td>${esc(c.route||'')}</td><td class="num">${ed?amtInput(c.id,c.price):`<span style="color:var(--accent);font-weight:700">${money(c.price)}</span>`}</td><td class="num">${ed?'':`<button class="m-del" onclick="askEntry('load','${escJS(c.id)}')" title="${t('edit')}">✕</button>`}</td></tr>`;
+    }).join(''):`<tr><td colspan="4" class="detail-empty">${t('noEntries')}</td></tr>`;
+  } else if(entrySrc==='pump'){
+    title=t('pumpLbl'); totColor='var(--text)'; neg='';
+    const fs=fuels.filter(f=>matchPeriod(f.date, detailDesc) && (f.pump||0)>0).sort((a,b)=>a.date<b.date?1:-1);
+    tot=fs.reduce((s,f)=>s+(f.pump||0),0);
+    head=`<th>${t('day')}</th><th>${t('iftaGallons')}/${t('iftaState')}</th><th class="num">Pamp$</th><th></th>`;
+    rows=fs.length?fs.map(f=>{ const ed=f.id===catEditKey;
+      return `<tr><td>${fmtDay(f.date)}</td><td>${f.gallons?galFmt(f.gallons)+'g':''}${f.state?' '+esc(f.state):''}</td><td class="num">${ed?amtInput(f.id,f.pump||0):`<span style="font-weight:700">${money(f.pump||0)}</span>`}</td><td class="num">${ed?'':`<button class="m-del" onclick="askEntry('fuel','${escJS(f.id)}')" title="${t('edit')}">✕</button>`}</td></tr>`;
+    }).join(''):`<tr><td colspan="4" class="detail-empty">${t('noEntries')}</td></tr>`;
+  } else {
+    let entries;
+    if(entrySrc==='fixed'){ entries=fixedAsExp().filter(e=>matchPeriod(e.date, detailDesc)); title=t('fixedExpLbl'); }
+    else if(entrySrc==='exp'){ entries=expenses.concat(maintAsExp()).filter(e=>matchPeriod(e.date, detailDesc)); title=t('totalExp'); }
+    else { entries=allExps().filter(e=>matchPeriod(e.date, detailDesc) && e.cat===catPageCat); title=catPageCat; }
+    entries=entries.sort((a,b)=>a.date<b.date?1:-1);
+    tot=entries.reduce((s,x)=>s+x.amount,0);
+    const showCat=(entrySrc==='exp'||entrySrc==='fixed');
+    head=`<th>${t('day')}</th><th class="num">${t('expAmt')}</th><th></th>`;
+    rows=entries.length?entries.map(e=>{
+      const readonly=(e.isFixed && e.fkind==='mile');
+      const ed=(e.id===catEditKey);
+      const btn=readonly?'':e.isFixed?`<button class="m-del" onclick="askEntry('fixed','${escJS(e.id)}','${escJS(e.fkind)}','${escJS(e.pkey)}')" title="${t('edit')}">✕</button>`:e.isMaint?`<button class="m-del" onclick="askEntry('maint','${escJS(e.id)}')" title="${t('edit')}">✕</button>`:`<button class="m-del" onclick="askEntry('exp','${escJS(e.id)}')" title="${t('edit')}">✕</button>`;
+      const label=showCat?`${fmtDay(e.date)} · ${esc(e.cat)}`:fmtDay(e.date);
+      const amtCell=ed?amtInput(e.id,e.amount):`<span style="color:var(--del);font-weight:700">−${money(e.amount)}</span>`;
+      return `<tr><td>${label}</td><td class="num">${amtCell}</td><td class="num">${ed?'':btn}</td></tr>`;
+    }).join(''):`<tr><td colspan="3" class="detail-empty">${t('noEntries')}</td></tr>`;
+  }
+  p.innerHTML=`
+    <div class="detail-head">
+      <button class="detail-back" onclick="closeCatPage()">← ${t('back')}</button>
+      <div class="detail-title">${esc(title)}</div>
+    </div>
+    <div class="detail-summary">
+      <div class="detail-sum-box"><div class="lbl">${esc(title)}</div><div class="val" style="color:${totColor}">${neg}${money(tot)}</div></div>
+    </div>
+    <div class="card" style="padding:6px 4px">
+      <table><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+    </div>`;
+}
+function catDelLoad(id){ delCar(id); renderCatPage(); }
+function catDelExp(id){ pushHistory(); expenses=expenses.filter(e=>e.id!==id); saveExpenses(); renderCatPage(); render(); }
+function catDelMaint(id){ pushHistory(); maintenance=maintenance.filter(m=>m.id!==id); saveMaint(); renderCatPage(); render(); }
+function catDelFixed(fkind, pkey){
+  pushHistory();
+  if(fkind==='week') settings.fixedWeekOverrides[pkey]=0;
+  else if(fkind==='month') settings.fixedMonthOverrides[pkey]=0;
+  saveSettings(); renderCatPage(); render();
+}
+let editingFuelId=null;
+function delFuel(id){ pushHistory(); fuels=fuels.filter(f=>f.id!==id); saveFuels(); render(); renderCatPage(); }
 // --- Maintenance List გვერდი ---
 function saveMaint(){ store.set('maintenance', JSON.stringify(maintenance)); pushCloud(); }
 function maintAsExp(){ return maintenance.filter(m=>(m.price||0)>0).map(m=>({ id:m.id, date:m.date, cat:'Maintenance', amount:m.price, isMaint:true })); }
@@ -1377,7 +1460,7 @@ function iftaSave(){ store.set('ifta', JSON.stringify(ifta)); pushCloud(); }
 function iftaNavQuarter(delta){
   let p=iftaQuarter.split('-Q'); let y=parseInt(p[0]), q=parseInt(p[1])+delta;
   while(q<1){ q+=4; y--; } while(q>4){ q-=4; y++; }
-  iftaQuarter=y+'-Q'+q; iftaEditId=null; renderIFTA();
+  iftaQuarter=y+'-Q'+q; renderIFTA();
 }
 function galFmt(n){ return grp((n||0).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:1})); }
 function renderIFTA(){
@@ -1389,18 +1472,29 @@ function renderIFTA(){
   const combined=[...stateSet].sort().map(code=>{
     const mr=(q.rows||[]).find(r=>r.juris===code);
     const gallons=((mr&&mr.gallons)||0)+(fuelGal[code]||0);
-    return { juris:code, id:mr?mr.id:null, miles:mr?(mr.miles||0):0, rate:mr?(mr.rate||0):0, gallons };
+    return { juris:code, id:mr?mr.id:null, gallons };
   });
   const tGal=combined.reduce((a,r)=>a+r.gallons,0);
-  const editing=iftaEditId!=null;
-  const editRow=editing?(q.rows||[]).find(x=>x.id===iftaEditId):null;
+  const subInput=(key,val)=>`<input id="iftaEditInput" type="number" inputmode="decimal" value="${val}" style="width:80px;padding:3px 5px;font-size:13px;text-align:right" onkeydown="if(event.key==='Enter'){event.preventDefault();iftaFillSave('${escJS(key)}')}" onblur="iftaFillSave('${escJS(key)}')">`;
   const tableRows = combined.length ? combined.map(r=>{
-    const delBtn = r.id?`<button class="m-del" onclick="event.stopPropagation();delIFTA('${r.id}')" title="${t('del')}">✕</button>`:'';
-    return `<tr style="cursor:pointer" onclick="iftaEditState('${r.juris}')">
+    const exp=(r.juris===iftaExpanded);
+    let out=`<tr style="cursor:pointer" onclick="toggleIftaExpand('${escJS(r.juris)}')">
       <td style="font-weight:700">${esc(r.juris)}</td>
       <td class="num">${galFmt(r.gallons||0)}</td>
-      <td class="num">${delBtn}</td>
+      <td class="num" style="color:var(--muted2)">${exp?'▾':'▸'}</td>
     </tr>`;
+    if(exp){
+      const mr=(q.rows||[]).find(x=>x.juris===r.juris); const manual=(mr&&mr.gallons)||0;
+      const fs=fuels.filter(f=>f.state===r.juris && quarterOf(f.date)===iftaQuarter).sort((a,b)=>a.date<b.date?1:-1);
+      if(manual>0){ const key='manual|'+r.juris; const ed=(iftaEditKey===key);
+        out+=`<tr style="background:var(--row-line)"><td style="padding-left:22px;color:var(--muted)">${lang==='ka'?'ხელით':'Manual'}</td><td class="num">${ed?subInput(key,manual):galFmt(manual)}</td><td class="num">${ed?'':`<button class="m-del" onclick="event.stopPropagation();askIftaFill('${escJS(key)}')" title="${t('edit')}">✕</button>`}</td></tr>`;
+      }
+      fs.forEach(f=>{ const ed=(iftaEditKey===f.id);
+        out+=`<tr style="background:var(--row-line)"><td style="padding-left:22px;color:var(--muted)">${fmtDay(f.date)}${f.pump?' · '+money(f.pump):''}</td><td class="num">${ed?subInput(f.id,f.gallons||0):galFmt(f.gallons||0)}</td><td class="num">${ed?'':`<button class="m-del" onclick="event.stopPropagation();askIftaFill('${escJS(f.id)}')" title="${t('edit')}">✕</button>`}</td></tr>`;
+      });
+      if(manual<=0 && !fs.length) out+=`<tr style="background:var(--row-line)"><td colspan="3" style="padding-left:22px;color:var(--muted2)">${t('noEntries')}</td></tr>`;
+    }
+    return out;
   }).join('') : `<tr><td colspan="3" class="detail-empty">${t('iftaEmpty')}</td></tr>`;
   p.innerHTML=`
     <div class="detail-head">
@@ -1419,7 +1513,7 @@ function renderIFTA(){
       <div class="row">
         <div style="flex:1 1 auto;min-width:0;position:relative">
           <label>${t('iftaState')}</label>
-          <input id="iState" type="text" autocomplete="off" autocapitalize="characters" placeholder="IL, TX, CA…" value="${editRow?esc(editRow.juris):''}" oninput="iftaFilter()" onfocus="iftaFilter()" onblur="iftaBlurList()" onkeydown="if(event.key==='Enter'){event.preventDefault();iftaFilterEnter()}">
+          <input id="iState" type="text" autocomplete="off" autocapitalize="characters" placeholder="IL, TX, CA…" value="" oninput="iftaFilter()" onfocus="iftaFilter()" onblur="iftaBlurList()" onkeydown="if(event.key==='Enter'){event.preventDefault();iftaFilterEnter()}">
           <div id="iStateList" class="ifta-list" style="display:none"></div>
         </div>
         <div style="flex:0 0 100px"><label>${t('iftaFuel')}</label>
@@ -1432,9 +1526,8 @@ function renderIFTA(){
         </div>
       </div>
       <div class="row" style="margin-top:8px">
-        <div style="flex:1"><label>${t('iftaGallons')}</label><input id="iGal" type="number" inputmode="decimal" value="${editRow&&editRow.gallons?editRow.gallons:''}"></div>
-        <button class="add" style="flex:0 0 auto" onclick="addIFTA()">${editing?t('saveExp'):t('add')}</button>
-        <button class="daybtn" onclick="cancelIFTAEdit()" style="${editing?'':'display:none'}" title="${t('cancelEdit')}">✕</button>
+        <div style="flex:1"><label>${t('iftaGallons')}</label><input id="iGal" type="number" inputmode="decimal" value=""></div>
+        <button class="add" style="flex:0 0 auto" onclick="addIFTA()">${t('add')}</button>
       </div>
     </div>
     <div class="card" style="padding:6px 4px">
@@ -1445,6 +1538,23 @@ function renderIFTA(){
     </div>`;
 }
 function setIFTAFuel(v){ iftaQData().fuel=v; iftaSave(); }
+function toggleIftaExpand(code){ iftaExpanded=(iftaExpanded===code)?null:code; iftaEditKey=null; renderIFTA(); }
+function askIftaFill(key){ askEditDelete(()=>iftaFillEdit(key), ()=>iftaFillDel(key)); }
+function iftaFillEdit(key){ iftaEditKey=key; renderIFTA(); const inp=document.getElementById('iftaEditInput'); if(inp){ inp.focus(); inp.select(); } }
+function iftaFillSave(key){
+  if(iftaEditKey!==key) return; iftaEditKey=null;
+  const inp=document.getElementById('iftaEditInput'); const num=inp?(parseFloat(inp.value)||0):0;
+  pushHistory();
+  if(String(key).indexOf('manual|')===0){ const code=key.split('|')[1]; const q=iftaQData(); let r=(q.rows||[]).find(x=>x.juris===code); if(!r){ r={id:Date.now()+''+Math.random(),juris:code,miles:0,gallons:0,rate:0}; q.rows.push(r);} r.gallons=num; iftaSave(); }
+  else { const f=fuels.find(x=>x.id===key); if(f){ f.gallons=num; saveFuels(); } }
+  renderIFTA();
+}
+function iftaFillDel(key){
+  pushHistory();
+  if(String(key).indexOf('manual|')===0){ const code=key.split('|')[1]; const q=iftaQData(); const r=(q.rows||[]).find(x=>x.juris===code); if(r) r.gallons=0; iftaSave(); }
+  else { fuels=fuels.filter(f=>f.id!==key); saveFuels(); }
+  renderIFTA();
+}
 function iftaMatches(qraw){
   const q=(qraw||'').trim().toLowerCase();
   const out=[];
@@ -1479,12 +1589,6 @@ function iftaResolveState(){
   for(const grp of IFTA_JURIS) for(const it of grp.items){ if(it[1].toLowerCase()===v) return it[0]; }
   const m=iftaMatches(v); return m.length?m[0][0]:null;
 }
-function iftaEditState(code){
-  const q=iftaQData();
-  let r=(q.rows||[]).find(x=>x.juris===code);
-  if(!r){ r={ id:Date.now()+''+Math.random(), juris:code, miles:0, gallons:0, rate:0 }; q.rows.push(r); iftaSave(); }
-  editIFTA(r.id);
-}
 function addIFTA(){
   const juris=iftaResolveState();
   if(!juris){ const s=document.getElementById('iState'); if(s) s.focus(); return; }
@@ -1492,31 +1596,13 @@ function addIFTA(){
   if(gallons<=0){ document.getElementById('iGal').focus(); return; }
   pushHistory();
   const q=iftaQData();
-  if(iftaEditId){
-    const r=(q.rows||[]).find(x=>x.id===iftaEditId);
-    if(r){ r.juris=juris; r.gallons=gallons; }
-    iftaEditId=null;
-  } else {
-    const existing=(q.rows||[]).find(x=>x.juris===juris);
-    if(existing){ existing.gallons=(existing.gallons||0)+gallons; }
-    else q.rows.push({ id:Date.now()+''+Math.random(), juris, miles:0, gallons, rate:0 });
-  }
-  iftaSave(); renderIFTA();
-}
-function editIFTA(id){
-  iftaEditId=id; renderIFTA();
-  const el=document.getElementById('iGal'); if(el) el.focus();
-}
-function cancelIFTAEdit(){ iftaEditId=null; renderIFTA(); }
-function delIFTA(id){
-  const q=iftaQData(); pushHistory();
-  q.rows=(q.rows||[]).filter(x=>x.id!==id);
-  if(iftaEditId===id) iftaEditId=null;
+  const existing=(q.rows||[]).find(x=>x.juris===juris);
+  if(existing){ existing.gallons=(existing.gallons||0)+gallons; }
+  else q.rows.push({ id:Date.now()+''+Math.random(), juris, miles:0, gallons, rate:0 });
   iftaSave(); renderIFTA();
 }
 function openIFTA(){
   if(!iftaQuarter) iftaQuarter=currentQuarter();
-  iftaEditId=null;
   renderIFTA();
   showPage('iftaPage');
 }
@@ -1588,14 +1674,47 @@ function changeMaintDate(delta){ const el=document.getElementById('mDate'); if(e
 // --- ერთიანი მოქმედების ფურცელი (edit/delete) ---
 let asType=null, asId=null;
 function askItemAction(type, id){
-  asType=type; asId=id;
+  askEditDelete(()=>doItemEdit(type,id), ()=>doItemDelete(type,id));
+}
+function askEditDelete(editCb, delCb){
   document.getElementById('asEditLbl').textContent=t('edit');
   document.getElementById('asDelLbl').textContent=t('del');
   document.getElementById('asCancel').textContent=t('cancelEdit');
-  const editBtn=document.getElementById('asEdit'), delBtn=document.getElementById('asDel');
-  editBtn.onclick=()=>{ const ty=asType, i=asId; closeActionSheet(); doItemEdit(ty,i); };
-  delBtn.onclick=()=>{ const ty=asType, i=asId; closeActionSheet(); doItemDelete(ty,i); };
+  document.getElementById('asEdit').onclick=()=>{ closeActionSheet(); if(editCb) editCb(); };
+  document.getElementById('asDel').onclick=()=>{ closeActionSheet(); if(delCb) delCb(); };
   document.getElementById('actionSheet').style.display='flex';
+}
+function askEntry(kind, id, b, c){
+  const del = kind==='load'?()=>catDelLoad(id)
+    : kind==='fuel'?()=>delFuel(id)
+    : kind==='maint'?()=>catDelMaint(id)
+    : kind==='fixed'?()=>catDelFixed(b,c)
+    : ()=>catDelExp(id);
+  askEditDelete(()=>catInlineEdit(id), del);
+}
+function catInlineEdit(id){ catEditKey=id; renderCatPage(); const inp=document.getElementById('catEditInput'); if(inp){ inp.focus(); inp.select(); } }
+function catInlineSave(id){
+  if(catEditKey!==id) return;
+  catEditKey=null;
+  const inp=document.getElementById('catEditInput');
+  const num = inp ? (parseFloat(inp.value)||0) : 0;
+  pushHistory();
+  const car=carsOwner.find(c=>c.id===id);
+  if(car){ car.price=num; store.set('carsOwner',JSON.stringify(carsOwner)); pushCloud(); }
+  else { const f=fuels.find(x=>x.id===id);
+    if(f){ f.pump=num; saveFuels(); }
+    else { const e=expenses.find(x=>x.id===id);
+      if(e){ e.amount=num; saveExpenses(); }
+      else { const m=maintenance.find(x=>x.id===id);
+        if(m){ m.price=num; saveMaint(); }
+        else if(String(id).indexOf('fx-')===0){
+          const fe=fixedAsExp().find(x=>x.id===id);
+          if(fe){ if(fe.fkind==='week') settings.fixedWeekOverrides[fe.pkey]=num; else if(fe.fkind==='month') settings.fixedMonthOverrides[fe.pkey]=num; saveSettings(); }
+        }
+      }
+    }
+  }
+  renderCatPage(); render();
 }
 function closeActionSheet(){ document.getElementById('actionSheet').style.display='none'; asType=null; asId=null; }
 function doItemEdit(type,id){
@@ -1646,11 +1765,11 @@ function renderDetail(){
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
-      <div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">${money(g)}</div></div>
+      <div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>Gross</span><button class="stat-enter" onclick="openGrossPage()" title="${t('openDetail')}">↵</button></div><div class="val">${money(g)}</div></div>
       ${feeAmt>0?`<div class="detail-sum-box"><div class="lbl">${t('companyFee')}</div><div class="val" style="color:var(--del)">−${money(feeAmt)}</div></div>`:''}
-      ${fixedTotal>0?`<div class="detail-sum-box"><div class="lbl">${t('fixedExpLbl')}</div><div class="val" style="color:var(--del)">−${money(fixedTotal)}</div></div>`:''}
-      <div class="detail-sum-box"><div class="lbl">${t('totalExp')}</div><div class="val" style="color:var(--del)">−${money(eNonFixed)}</div></div>
-      ${pumpTotal>0?`<div class="detail-sum-box"><div class="lbl">${t('pumpLbl')}</div><div class="val">${money(pumpTotal)}</div></div>`:''}
+      ${fixedTotal>0?`<div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('fixedExpLbl')}</span><button class="stat-enter" onclick="openFixedPage()" title="${t('openDetail')}">↵</button></div><div class="val" style="color:var(--del)">−${money(fixedTotal)}</div></div>`:''}
+      <div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('totalExp')}</span><button class="stat-enter" onclick="openExpPage()" title="${t('openDetail')}">↵</button></div><div class="val" style="color:var(--del)">−${money(eNonFixed)}</div></div>
+      ${pumpTotal>0?`<div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('pumpLbl')}</span><button class="stat-enter" onclick="openPumpPage()" title="${t('openDetail')}">↵</button></div><div class="val">${money(pumpTotal)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-eTotal)}</div></div>
     </div>`;
   } else {
@@ -1682,7 +1801,7 @@ function renderDetail(){
         const tot=items.reduce((s,x)=>s+x.amount,0);
         const lines=collapsed ? '' : items.map(e=>`<div class="cat-group-line"><span>${fmtDay(e.date,'weekday')}</span><span style="color:var(--del)">−${money(e.amount)}</span></div>`).join('');
         return `<div class="cat-group">
-          <div class="cat-group-head"><span>${esc(cat)}</span><span style="color:var(--del)">−${money(tot)}</span></div>
+          <div class="cat-group-head"><span>${esc(cat)}</span><span style="display:flex;align-items:center;gap:9px"><span style="color:var(--del)">−${money(tot)}</span>${collapsed?`<button class="stat-enter" onclick="openCatPage('${escJS(cat)}')" title="${t('openDetail')}">↵</button>`:''}</span></div>
           ${lines?`<div class="cat-group-items">${lines}</div>`:''}
         </div>`;
       }).join('');
