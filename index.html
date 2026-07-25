@@ -346,6 +346,7 @@
     <button class="add" id="expAdd"></button>
     <button class="daybtn" id="expCancelEdit" onclick="cancelEditExpense()" style="display:none" title="">✕</button>
   </div>
+  <div id="ocrNote" style="display:none;margin-top:6px;font-size:11px;line-height:1.5;color:var(--muted);background:var(--chip);border-radius:8px;padding:6px 9px;cursor:pointer" onclick="showOCRText()"></div>
   <div class="row" style="margin-top:8px;">
     <div style="flex:1 1 auto;min-width:0"><label id="lblExpDate"></label>
       <div class="date-row">
@@ -934,11 +935,67 @@ function receiptAmount(text){
   if(any&&any.length){ let mx=0; any.forEach(x=>{ const v=parseFloat(x.replace(/[^0-9.]/g,'')); if(v>mx) mx=v; }); if(mx>0) return mx; }
   return null;
 }
+function receiptDiscounted(text, total){
+  // 1) ცხადი წარწერა: "YOU PAY", "NET TOTAL", "YOUR PRICE", "MEMBER PRICE"
+  const direct=/(?:you\s*pay|your\s*price|net\s*(?:total|amount|price)|member\s*price|discount(?:ed)?\s*(?:total|price|amount))[^0-9$]{0,14}\$?\s*(\d[\d,]*\.\d{2})/i;
+  let m=text.match(direct);
+  if(m){ const v=parseFloat(m[1].replace(/,/g,'')); if(v>0) return v; }
+  // 2) "DISCOUNT -12.50" / "SAVINGS 12.50" → ჯამს გამოვაკლოთ
+  m=text.match(/(?:discount|savings?|rebate)[^0-9$\-]{0,12}-?\s*\$?\s*(\d[\d,]*\.\d{2})/i);
+  if(m && total!=null){
+    const d=parseFloat(m[1].replace(/,/g,''));
+    if(d>0 && d<total) return Math.round((total-d)*100)/100;
+  }
+  return null;
+}
 function receiptGallons(text){
-  let m=text.match(/(\d{1,3}(?:\.\d{1,3})?)\s*(?:gal(?:lons?)?|gl)\b/i);
+  // საწვავის ქვითარზე გალონი თითქმის ყოველთვის ათწილადია: "50.191 GAL"
+  let m=text.match(/(\d{1,3}\.\d{2,3})\s*(?:gal(?:lons?)?|gl)\b/i);
+  if(!m) m=text.match(/(\d{1,3}(?:\.\d{1,3})?)\s*(?:gal(?:lons?)?|gl)\b/i);
   if(!m) m=text.match(/\bgal(?:lons?)?\b[^0-9]{0,12}(\d{1,3}(?:\.\d{1,3})?)/i);
   if(m){ const v=parseFloat(m[1]); if(v>0&&v<500) return v; }
   return null;
+}
+function receiptPricePerGal(text){
+  // "@ 4.999 /GAL", "PRICE/GAL 4.999", "4.999 PER GAL"
+  let m=text.match(/(\d\.\d{2,3})\s*(?:\/|per\s*)\s*gal/i);
+  if(!m) m=text.match(/(?:price\s*\/?\s*gal|ppg|price\s*per\s*gal)[^0-9]{0,10}(\d\.\d{2,3})/i);
+  if(!m) m=text.match(/@\s*\$?\s*(\d\.\d{2,3})/);
+  if(m){ const v=parseFloat(m[1]); if(v>0.5&&v<15) return v; }
+  return null;
+}
+/* გალონი × ფასი ≈ ჯამი — სამიდან ორით მესამეს ვასწორებთ.
+   ეს OCR-ის შეცდომებს იჭერს (მაგ. "50.191" წაიკითხა "6"-ად). */
+function reconcileFuel(total, gal, ppg){
+  const okProduct=(g,p,t)=>t!=null&&g!=null&&p!=null&&Math.abs(g*p-t)<=Math.max(0.75, t*0.02);
+  if(okProduct(gal,ppg,total)) return {total, gal, ppg};
+  if(total!=null && ppg!=null){                       // გალონი ჯამიდან
+    const g=Math.round((total/ppg)*1000)/1000;
+    if(g>0&&g<500) return {total, gal:g, ppg};
+  }
+  if(gal!=null && ppg!=null && total==null){          // ჯამი გალონიდან
+    return {total: Math.round(gal*ppg*100)/100, gal, ppg};
+  }
+  if(total!=null && gal!=null && ppg==null){          // ფასი გამოითვლება
+    const p=Math.round((total/gal)*1000)/1000;
+    if(p>0.5&&p<15) return {total, gal, ppg:p};
+  }
+  return {total, gal, ppg};
+}
+// ZIP-კოდის პრეფიქსი → შტატი (ბევრ ქვითარზე შტატის კოდი არ წერია)
+const ZIP_STATE=[[350,369,'AL'],[995,999,'AK'],[850,865,'AZ'],[716,729,'AR'],[900,961,'CA'],
+[800,816,'CO'],[60,69,'CT'],[197,199,'DE'],[200,205,'DC'],[320,349,'FL'],[300,319,'GA'],[398,399,'GA'],
+[967,968,'HI'],[832,838,'ID'],[600,629,'IL'],[460,479,'IN'],[500,528,'IA'],[660,679,'KS'],[400,427,'KY'],
+[700,714,'LA'],[39,49,'ME'],[206,219,'MD'],[10,27,'MA'],[480,499,'MI'],[550,567,'MN'],[386,397,'MS'],
+[630,658,'MO'],[590,599,'MT'],[680,693,'NE'],[889,898,'NV'],[30,38,'NH'],[70,89,'NJ'],[870,884,'NM'],
+[100,149,'NY'],[270,289,'NC'],[580,588,'ND'],[430,459,'OH'],[730,749,'OK'],[970,979,'OR'],[150,196,'PA'],
+[28,29,'RI'],[290,299,'SC'],[570,577,'SD'],[370,385,'TN'],[750,799,'TX'],[885,885,'TX'],[840,847,'UT'],
+[50,59,'VT'],[220,246,'VA'],[980,994,'WA'],[247,268,'WV'],[530,549,'WI'],[820,831,'WY']];
+function stateFromZip(zip){
+  const p=parseInt(String(zip).slice(0,3),10);
+  if(isNaN(p)) return '';
+  for(const r of ZIP_STATE){ if(p>=r[0]&&p<=r[1]) return r[2]; }
+  return '';
 }
 function receiptState(text){
   const codes=new Set(); IFTA_JURIS.forEach(g=>g.items.forEach(i=>codes.add(i[0])));
@@ -946,6 +1003,9 @@ function receiptState(text){
   if(m){ for(const s of m){ const c=s.replace(/[^A-Z]/g,''); if(codes.has(c)) return c; } }
   m=text.match(/\b([A-Z]{2})\s+\d{5}(?:-\d{4})?\b/);     // "IL 60629"
   if(m && codes.has(m[1])) return m[1];
+  // შტატის კოდის გარეშე — ZIP-იდან (მაგ. "MADISON HEIGHTS 24572" → VA)
+  const zips=text.match(/\b\d{5}\b(?!\d)/g);
+  if(zips){ for(const z of zips){ const st=stateFromZip(z); if(st && codes.has(st)) return st; } }
   return '';
 }
 function receiptDate(text){
@@ -962,8 +1022,11 @@ function parseReceipt(text){
   let filled=false;
   const set=(id,v)=>{ const el=document.getElementById(id); if(el&&v!=null&&v!==''){ el.value=v; filled=true; } };
   if(isFuel){
-    if(amt!=null) set('expPump', amt);          // პამპის ჯამური თანხა
-    set('expGal', receiptGallons(text));
+    const r=reconcileFuel(amt, receiptGallons(text), receiptPricePerGal(text));
+    if(r.total!=null) set('expPump', r.total);   // პამპის ფასი — ფასდაუკლებელი
+    const paid=receiptDiscounted(text, r.total);
+    if(paid!=null) set('expFuel', paid);         // ფასდაკლებული — რაც რეალურად გადაიხადე
+    if(r.gal!=null) set('expGal', r.gal);
     set('expState', receiptState(text));
   } else if(amt!=null){
     set('expAmt', amt);
@@ -972,15 +1035,95 @@ function parseReceipt(text){
   const focusEl=document.getElementById(isFuel?'expPump':'expAmt'); if(focusEl) focusEl.focus();
   return filled;
 }
+// სურათის მომზადება OCR-ისთვის: ზომა, შავ-თეთრი, კონტრასტის გაწელვა
+function ocrPrep(file){
+  return new Promise((resolve)=>{
+    try{
+      const url=URL.createObjectURL(file);
+      const img=new Image();
+      img.onload=()=>{
+        try{
+          // ძალიან პატარას გავადიდებთ, ძალიან დიდს დავპატარავებთ
+          let scale=1;
+          if(img.width<1000) scale=1000/img.width;
+          if(img.width>1800) scale=1800/img.width;
+          const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
+          const c=document.createElement('canvas'); c.width=w; c.height=h;
+          const cx=c.getContext('2d');
+          cx.drawImage(img,0,0,w,h);
+          const d=cx.getImageData(0,0,w,h), p=d.data;
+          // 1) შავ-თეთრი
+          const gray=new Float64Array(w*h);
+          for(let i=0,j=0;i<p.length;i+=4,j++){
+            gray[j]=p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114;
+          }
+          // 2) ლოკალური (ადაპტური) ზღურბლი — ბრედლის მეთოდი.
+          //    გლობალურ კონტრასტზე ბევრად კარგია, როცა განათება არათანაბარია
+          //    ან ფონი მუქია (მაგ. ქვითარი საჭეზე).
+          const integ=new Float64Array((w+1)*(h+1));
+          for(let y=0;y<h;y++){
+            let rowSum=0;
+            for(let x=0;x<w;x++){
+              rowSum+=gray[y*w+x];
+              integ[(y+1)*(w+1)+(x+1)]=integ[y*(w+1)+(x+1)]+rowSum;
+            }
+          }
+          const rad=Math.max(8, Math.round(w/16));   // ფანჯრის ნახევარი
+          for(let y=0;y<h;y++){
+            const y1=Math.max(0,y-rad), y2=Math.min(h-1,y+rad);
+            for(let x=0;x<w;x++){
+              const x1=Math.max(0,x-rad), x2=Math.min(w-1,x+rad);
+              const cnt=(x2-x1+1)*(y2-y1+1);
+              const sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]
+                       -integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
+              const v=gray[y*w+x]*cnt > sum*0.88 ? 255 : 0;
+              const i=(y*w+x)*4;
+              p[i]=p[i+1]=p[i+2]=v; p[i+3]=255;
+            }
+          }
+          cx.putImageData(d,0,0);
+          URL.revokeObjectURL(url);
+          resolve(c);
+        }catch(e){ URL.revokeObjectURL(url); resolve(file); }
+      };
+      img.onerror=()=>{ URL.revokeObjectURL(url); resolve(file); };
+      img.src=url;
+    }catch(e){ resolve(file); }
+  });
+}
+let lastOCRText='';
+function showOCRText(){
+  if(!lastOCRText){ return; }
+  alert(lastOCRText.slice(0,1500));
+}
+function ocrNote(msg){
+  const el=document.getElementById('ocrNote'); if(!el) return;
+  if(!msg){ el.style.display='none'; el.textContent=''; return; }
+  el.textContent=msg; el.style.display='';
+}
 async function handleExpImage(file){
   if(!file) return;
   const btn=document.getElementById('expImgBtn'); const orig=btn.textContent;
-  btn.textContent='⏳'; btn.disabled=true;
+  btn.textContent='⏳'; btn.disabled=true; ocrNote('');
   try{
     await ensureTesseract();
-    const r=await Tesseract.recognize(file,'eng');
-    if(!parseReceipt(r.data.text||'')) alert(t('ocrFail'));
-  }catch(e){ console.warn('OCR', e); alert(t('ocrFail')); }
+    const src=await ocrPrep(file);
+    const r=await Tesseract.recognize(src,'eng');
+    lastOCRText=(r.data&&r.data.text)||'';
+    const filled=parseReceipt(lastOCRText);
+    const parts=[];
+    const val=id=>{ const e=document.getElementById(id); return e&&e.value?e.value:null; };
+    if(selectedCat==='Fuel'){
+      if(val('expPump')) parts.push('Pamp$ '+val('expPump'));
+      if(val('expFuel')) parts.push('Fuel '+val('expFuel'));
+      if(val('expGal')) parts.push(val('expGal')+'g');
+      if(val('expState')) parts.push(val('expState'));
+    } else if(val('expAmt')) parts.push('$'+val('expAmt'));
+    ocrNote(parts.length
+      ? 'წავიკითხე: '+parts.join(' · ')+'  —  შეამოწმე. (დააჭირე რომ ნახო სრული ტექსტი)'
+      : 'ვერაფერი ამოვიკითხე. დააჭირე რომ ნახო, რა დაინახა კამერამ.');
+    if(!filled) console.warn('OCR raw:', lastOCRText);
+  }catch(e){ console.warn('OCR', e); ocrNote(t('ocrFail')); }
   btn.textContent=orig; btn.disabled=false;
 }
 document.getElementById('expImgBtn').addEventListener('click', ()=>document.getElementById('expImgInput').click());
