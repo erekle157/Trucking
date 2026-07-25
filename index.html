@@ -1036,60 +1036,116 @@ function parseReceipt(text){
   return filled;
 }
 // სურათის მომზადება OCR-ისთვის: ზომა, შავ-თეთრი, კონტრასტის გაწელვა
-function ocrPrep(file){
-  return new Promise((resolve)=>{
-    try{
-      const url=URL.createObjectURL(file);
-      const img=new Image();
-      img.onload=()=>{
-        try{
-          // ძალიან პატარას გავადიდებთ, ძალიან დიდს დავპატარავებთ
-          let scale=1;
-          if(img.width<1000) scale=1000/img.width;
-          if(img.width>1800) scale=1800/img.width;
-          const w=Math.round(img.width*scale), h=Math.round(img.height*scale);
-          const c=document.createElement('canvas'); c.width=w; c.height=h;
-          const cx=c.getContext('2d');
-          cx.drawImage(img,0,0,w,h);
-          const d=cx.getImageData(0,0,w,h), p=d.data;
-          // 1) შავ-თეთრი
-          const gray=new Float64Array(w*h);
-          for(let i=0,j=0;i<p.length;i+=4,j++){
-            gray[j]=p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114;
-          }
-          // 2) ლოკალური (ადაპტური) ზღურბლი — ბრედლის მეთოდი.
-          //    გლობალურ კონტრასტზე ბევრად კარგია, როცა განათება არათანაბარია
-          //    ან ფონი მუქია (მაგ. ქვითარი საჭეზე).
-          const integ=new Float64Array((w+1)*(h+1));
-          for(let y=0;y<h;y++){
-            let rowSum=0;
-            for(let x=0;x<w;x++){
-              rowSum+=gray[y*w+x];
-              integ[(y+1)*(w+1)+(x+1)]=integ[y*(w+1)+(x+1)]+rowSum;
-            }
-          }
-          const rad=Math.max(8, Math.round(w/16));   // ფანჯრის ნახევარი
-          for(let y=0;y<h;y++){
-            const y1=Math.max(0,y-rad), y2=Math.min(h-1,y+rad);
-            for(let x=0;x<w;x++){
-              const x1=Math.max(0,x-rad), x2=Math.min(w-1,x+rad);
-              const cnt=(x2-x1+1)*(y2-y1+1);
-              const sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]
-                       -integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
-              const v=gray[y*w+x]*cnt > sum*0.88 ? 255 : 0;
-              const i=(y*w+x)*4;
-              p[i]=p[i+1]=p[i+2]=v; p[i+3]=255;
-            }
-          }
-          cx.putImageData(d,0,0);
-          URL.revokeObjectURL(url);
-          resolve(c);
-        }catch(e){ URL.revokeObjectURL(url); resolve(file); }
-      };
-      img.onerror=()=>{ URL.revokeObjectURL(url); resolve(file); };
-      img.src=url;
-    }catch(e){ resolve(file); }
+function ocrLoadImage(file){
+  return new Promise((resolve,reject)=>{
+    const url=URL.createObjectURL(file);
+    const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror=()=>{ URL.revokeObjectURL(url); reject(new Error('image')); };
+    img.src=url;
   });
+}
+/* ქვითრის ავტომატური ამოჭრა კადრიდან.
+   ქვითარი თითქმის ყოველთვის ფონზე ბევრად ღიაა (თეთრი ქაღალდი),
+   ამიტომ ვპოულობთ ნათელი პიქსელების ყველაზე დიდ ზოლს. */
+function ocrAutoCrop(img){
+  const W=240, H=Math.max(1, Math.round(img.height*W/img.width));
+  const c=document.createElement('canvas'); c.width=W; c.height=H;
+  const cx=c.getContext('2d'); cx.drawImage(img,0,0,W,H);
+  const p=cx.getImageData(0,0,W,H).data;
+  const g=new Uint8Array(W*H);
+  let mx=0;
+  for(let i=0,j=0;i<p.length;i+=4,j++){
+    const v=(p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114)|0;
+    g[j]=v; if(v>mx) mx=v;
+  }
+  const thr=Math.max(90, mx*0.62);
+  const band=(profile,len,minFrac)=>{
+    let bs=-1,bl=0,cs=-1,cl=0;
+    for(let i=0;i<len;i++){
+      if(profile[i]>=minFrac){ if(cs<0){cs=i;cl=0;} cl++; if(cl>bl){bl=cl;bs=cs;} }
+      else { cs=-1; cl=0; }
+    }
+    return bl>0?[bs,bs+bl-1]:null;
+  };
+  const rows=new Float64Array(H), cols=new Float64Array(W);
+  for(let y=0;y<H;y++) for(let x=0;x<W;x++) if(g[y*W+x]>=thr){ rows[y]++; cols[x]++; }
+  for(let y=0;y<H;y++) rows[y]/=W;
+  for(let x=0;x<W;x++) cols[x]/=H;
+  const ry=band(rows,H,0.25), rx=band(cols,W,0.20);
+  if(!ry||!rx) return null;
+  const sx=rx[0]/W, sw=(rx[1]-rx[0]+1)/W, sy=ry[0]/H, sh=(ry[1]-ry[0]+1)/H;
+  if(sw*sh < 0.08) return null;                    // ძალიან პატარაა — არ ვჭრით
+  const pad=0.02;
+  const x0=Math.max(0,sx-pad), y0=Math.max(0,sy-pad);
+  const x1=Math.min(1,sx+sw+pad), y1=Math.min(1,sy+sh+pad);
+  return { sx:x0*img.width, sy:y0*img.height, sw:(x1-x0)*img.width, sh:(y1-y0)*img.height };
+}
+/* mode: 'gray' — რბილი (Tesseract ხშირად ამას ურჩევნია)
+         'bw'   — ლოკალური ზღურბლი (სუსტი/არათანაბარი ბეჭდვისთვის) */
+function ocrCanvas(img, crop, mode){
+  const srcW=crop?crop.sw:img.width, srcH=crop?crop.sh:img.height;
+  let scale=1600/srcW;
+  if(scale>4) scale=4; if(scale<1) scale=Math.max(1600/srcW, 0.5);
+  const w=Math.max(1,Math.round(srcW*scale)), h=Math.max(1,Math.round(srcH*scale));
+  const c=document.createElement('canvas'); c.width=w; c.height=h;
+  const cx=c.getContext('2d');
+  cx.fillStyle='#fff'; cx.fillRect(0,0,w,h);
+  if(crop) cx.drawImage(img, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, w, h);
+  else cx.drawImage(img, 0, 0, w, h);
+  const d=cx.getImageData(0,0,w,h), p=d.data;
+  const gray=new Float64Array(w*h);
+  let lo=255, hi=0;
+  for(let i=0,j=0;i<p.length;i+=4,j++){
+    const v=p[i]*0.299+p[i+1]*0.587+p[i+2]*0.114;
+    gray[j]=v; if(v<lo)lo=v; if(v>hi)hi=v;
+  }
+  if(mode==='gray'){
+    const range=Math.max(1,hi-lo);
+    for(let i=0,j=0;i<p.length;i+=4,j++){
+      let v=(gray[j]-lo)*255/range;
+      v=v<0?0:(v>255?255:v);
+      p[i]=p[i+1]=p[i+2]=v; p[i+3]=255;
+    }
+  } else {
+    const integ=new Float64Array((w+1)*(h+1));
+    for(let y=0;y<h;y++){
+      let rowSum=0;
+      for(let x=0;x<w;x++){
+        rowSum+=gray[y*w+x];
+        integ[(y+1)*(w+1)+(x+1)]=integ[y*(w+1)+(x+1)]+rowSum;
+      }
+    }
+    const rad=Math.max(10, Math.round(w/24));
+    for(let y=0;y<h;y++){
+      const y1=Math.max(0,y-rad), y2=Math.min(h-1,y+rad);
+      for(let x=0;x<w;x++){
+        const x1=Math.max(0,x-rad), x2=Math.min(w-1,x+rad);
+        const cnt=(x2-x1+1)*(y2-y1+1);
+        const sum=integ[(y2+1)*(w+1)+(x2+1)]-integ[y1*(w+1)+(x2+1)]
+                 -integ[(y2+1)*(w+1)+x1]+integ[y1*(w+1)+x1];
+        const v=gray[y*w+x]*cnt > sum*0.93 ? 255 : 0;
+        const i=(y*w+x)*4;
+        p[i]=p[i+1]=p[i+2]=v; p[i+3]=255;
+      }
+    }
+  }
+  cx.putImageData(d,0,0);
+  return c;
+}
+/* რამდენად „ქვითრისებურია" ამოკითხული ტექსტი */
+function ocrScore(text){
+  if(!text) return 0;
+  let s=0;
+  if(receiptAmount(text)!=null) s+=3;
+  if(receiptGallons(text)!=null) s+=2;
+  if(receiptPricePerGal(text)!=null) s+=2;
+  if(receiptDate(text)) s+=2;
+  if(receiptState(text)) s+=1;
+  const words=(text.match(/[A-Za-z]{4,}/g)||[]).length;   // ნამდვილი სიტყვები
+  const money=(text.match(/\d+\.\d{2}\b/g)||[]).length;   // ფულის ფორმატი
+  s += Math.min(3, words/8) + Math.min(3, money/2);
+  return s;
 }
 let lastOCRText='';
 function showOCRText(){
@@ -1107,10 +1163,24 @@ async function handleExpImage(file){
   btn.textContent='⏳'; btn.disabled=true; ocrNote('');
   try{
     await ensureTesseract();
-    const src=await ocrPrep(file);
-    const r=await Tesseract.recognize(src,'eng');
-    lastOCRText=(r.data&&r.data.text)||'';
-    const filled=parseReceipt(lastOCRText);
+    const img=await ocrLoadImage(file);
+    const crop=ocrAutoCrop(img);
+    // რამდენიმე ვარიანტს ვცდით და საუკეთესოს ვირჩევთ
+    const variants=[];
+    if(crop) variants.push(['crop-gray', ocrCanvas(img, crop, 'gray')]);
+    variants.push(['full-gray', ocrCanvas(img, null, 'gray')]);
+    if(crop) variants.push(['crop-bw', ocrCanvas(img, crop, 'bw')]);
+    let best={score:-1, text:'', how:''};
+    for(const [how, cv] of variants){
+      let text='';
+      try{ const r=await Tesseract.recognize(cv,'eng'); text=(r.data&&r.data.text)||''; }
+      catch(e){ continue; }
+      const sc=ocrScore(text);
+      if(sc>best.score) best={score:sc, text, how};
+      if(sc>=6) break;                 // საკმარისად კარგია — აღარ ვაყოვნებთ
+    }
+    lastOCRText=best.text;
+    parseReceipt(best.text);
     const parts=[];
     const val=id=>{ const e=document.getElementById(id); return e&&e.value?e.value:null; };
     if(selectedCat==='Fuel'){
@@ -1120,9 +1190,9 @@ async function handleExpImage(file){
       if(val('expState')) parts.push(val('expState'));
     } else if(val('expAmt')) parts.push('$'+val('expAmt'));
     ocrNote(parts.length
-      ? 'წავიკითხე: '+parts.join(' · ')+'  —  შეამოწმე. (დააჭირე რომ ნახო სრული ტექსტი)'
-      : 'ვერაფერი ამოვიკითხე. დააჭირე რომ ნახო, რა დაინახა კამერამ.');
-    if(!filled) console.warn('OCR raw:', lastOCRText);
+      ? 'წავიკითხე: '+parts.join(' · ')+'  —  შეამოწმე. (დააჭირე სრული ტექსტისთვის)'
+      : 'ვერაფერი ამოვიკითხე — ჩაწერე ხელით. (დააჭირე რომ ნახო, რა დაინახა)');
+    console.log('OCR variant:', best.how, 'score:', best.score.toFixed(1));
   }catch(e){ console.warn('OCR', e); ocrNote(t('ocrFail')); }
   btn.textContent=orig; btn.disabled=false;
 }
