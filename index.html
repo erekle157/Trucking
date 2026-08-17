@@ -871,14 +871,28 @@ function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent
 document.getElementById('add').addEventListener('click', addCar);
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
+/* Co. % დაყენება.
+   - პირველად დაყენებისას ვრცელდება ყველა ჩანაწერზე (მათ შორის ძველზე) —
+     თორემ ყველა წარსული კვირა 0-ზე რჩებოდა.
+   - შემდგომი ცვლილება მოქმედებს მხოლოდ ნანახი კვირიდან წინ,
+     ანუ წარსული ხელუხლებელი რჩება.
+   - ველის გასუფთავება = 0% ნანახი კვირიდან წინ. */
+function setCompanyFee(val, weekMon){
+  const hist=settings.companyFeeHistory;
+  const first=(hist.length===0);
+  if(val==null || isNaN(val)){
+    if(first) return;                       // გასასუფთავებელი არაფერია
+    val=0;
+  }
+  const date=first ? '2000-01-01' : weekMon;
+  const existing=hist.find(h=>h.date===date);
+  if(existing) existing.value=val; else hist.push({date, value:val});
+  hist.sort((a,b)=>a.date<b.date?-1:1);
+}
 document.getElementById('companyFee').addEventListener('change', e=>{
   const v=e.target.value; const val=v===''?null:parseFloat(v);
   settings.companyFee = v===''?'':val;
-  if(val!=null && !isNaN(val)){
-    const wk=mondayOf(selDate());
-    const existing=settings.companyFeeHistory.find(h=>h.date===wk);
-    if(existing) existing.value=val; else settings.companyFeeHistory.push({date:wk, value:val});
-  }
+  setCompanyFee(val, mondayOf(selDate()));
   saveSettings(); render();
 });
 // --- კვირებზე გადაფურცვლა (swipe) ---
