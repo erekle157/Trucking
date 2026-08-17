@@ -1228,9 +1228,10 @@ function escJS(s){ return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"); }
 function populateCats(){
   const row=document.getElementById('expCatRow'); if(!row) return;
   const all=EXP_CATS.concat(customCats);
-  const baseChips = EXP_CATS.map(c=>`<button type="button" class="cat-chip${c===selectedCat?' active':''}" onclick="pickCat('${escJS(c)}')">${esc(c)}</button>`).join('');
-  const custChips = customCats.map(c=>`<span class="cat-chip cust${c===selectedCat?' active':''}"><span class="cc-name" onclick="pickCat('${escJS(c)}')">${esc(c)}</span><button type="button" class="cc-del" onclick="removeCustomCat('${escJS(c)}')" title="${t('del')}">✕</button></span>`).join('');
-  const tempChip = (selectedCat && !all.includes(selectedCat))
+  const showActive=!addingCat;
+  const baseChips = EXP_CATS.map(c=>`<button type="button" class="cat-chip${(showActive&&c===selectedCat)?' active':''}" onclick="pickCat('${escJS(c)}')">${esc(c)}</button>`).join('');
+  const custChips = customCats.map(c=>`<span class="cat-chip cust${(showActive&&c===selectedCat)?' active':''}"><span class="cc-name" onclick="pickCat('${escJS(c)}')">${esc(c)}</span><button type="button" class="cc-del" onclick="removeCustomCat('${escJS(c)}')" title="${t('del')}">✕</button></span>`).join('');
+  const tempChip = (showActive && selectedCat && !all.includes(selectedCat))
     ? `<span class="cat-chip active cat-temp">${esc(selectedCat)}</span>` : '';
   const addPart = addingCat
     ? `<input id="newCatInput" type="text" class="cat-add-input" placeholder="${esc(t('addCustomCat'))}"
@@ -1242,7 +1243,7 @@ function populateCats(){
   updateFuelRow();
 }
 function updateFuelRow(){
-  const fuel=(selectedCat==='Fuel');
+  const fuel=(selectedCat==='Fuel' && !addingCat);
   const amt=document.getElementById('expAmt'), fi=document.getElementById('fuelInline');
   if(amt) amt.style.display = fuel?'none':'';
   if(fi) fi.style.display = fuel?'':'none';
