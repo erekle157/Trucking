@@ -144,6 +144,12 @@
   .share-col { color:var(--accent); font-weight:600; }
   .del { background:none; color:var(--del); padding:2px 8px; font-size:13px; border:none; cursor:pointer; }
   .udbar { position:fixed; left:14px; bottom:16px; display:flex; flex-direction:column; gap:10px; z-index:1200; }
+  #toast { position:fixed; top:64px; left:50%; transform:translateX(-50%) translateY(-14px); z-index:2000;
+    background:var(--accent); color:#fff; font-weight:700; font-size:14px; padding:9px 16px; border-radius:22px;
+    box-shadow:0 6px 20px rgba(0,0,0,.35); max-width:90vw; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  #toast.warn { background:var(--del); }
   .udbtn { width:46px; height:46px; border-radius:50%; border:1px solid var(--border); background:var(--card); color:var(--text);
     font-size:20px; cursor:pointer; box-shadow:0 2px 8px var(--shadow); display:flex; align-items:center; justify-content:center; }
   .udbtn:disabled { opacity:.35; cursor:default; }
@@ -276,6 +282,7 @@
   .fuel-inline .fi-state::after { content:'↓'; position:absolute; right:4px; top:50%; transform:translateY(-50%); color:var(--muted2); font-size:11px; pointer-events:none; }
 </style>
 </head><body>
+<div id="toast"></div>
 <div class="topbar">
   <div class="topleft">
     <h1>🚚 <span id="appTitle"></span></h1>
@@ -313,8 +320,9 @@
     <input id="imgInput" type="file" accept="image/*" style="display:none"/>
   </div>
   <div class="row" id="mileageRow" style="margin-top:8px;display:none;">
-    <div style="flex:0 0 56px"><label id="lblCompanyFee"></label><input id="companyFee" type="number" min="0" max="100" step="1" inputmode="numeric"/></div>
-    <div style="flex:1 1 70px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="text" inputmode="numeric"/></div>
+    <div style="flex:0 0 40px"><label id="lblCompanyFee"></label><input id="companyFee" type="number" min="0" max="99" step="1" inputmode="numeric" maxlength="2"/></div>
+    <div style="flex:0 0 48px"><label>DH</label><input id="ownDH" type="text" inputmode="numeric" maxlength="3"/></div>
+    <div style="flex:1 1 64px;min-width:0"><label id="lblStartMi"></label><input id="ownStartMi" type="text" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblEndMi"></label><input id="ownEndMi" type="text" inputmode="numeric"/></div>
     <div style="flex:1 1 70px;min-width:0"><label id="lblWeekMi"></label><div id="weekMiDisplay" class="mi-display">0</div></div>
   </div>
@@ -419,14 +427,14 @@ const T = {
     prevDay:"წინა დღე", nextDay:"შემდეგი დღე", thisWeek:"ამ კვირაში", lastWeek:"წინა კვირა", thisMonth:"ამ თვეში", lastMonth:"წინა თვე",
     thisYear:"წელს", total:"სულ", shareSuffix:"— ჩემი წილი", cars:"load", carsShort:"load", navPrev:"◀ წინა",    navNext:"შემდეგი ▶", noEntries:"— ჩანაწერი არ არის —", shareFoot:"ჩემი წილი:", day:"დღე", priceCol:"ფასი",
     del:"წაშლა", noneYet:"ჯერ ჩანაწერი არ არის ⬆️", confirmClear:"ნამდვილად წავშალო ყველა ჩანაწერი?",
-    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Profit", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა", edit:"რედაქტირება", searchPh:"ძებნა...", iftaState:"შტატი", iftaMiles:"მაილი", iftaGallons:"გალონი", iftaRate:"განაკვ. $/გალ", iftaTax:"გადასახადი", iftaTotMiles:"სულ მაილი", iftaTotGal:"სულ გალონი", iftaMpg:"MPG", iftaFuel:"საწვავი", iftaTaxDue:"გადასახდელი", iftaCredit:"კრედიტი", iftaEmpty:"ჯერ შტატი არ დამატებულა", iftaNote:"განაკვეთი ($/გალ) თითო შტატზე მიმდინარე კვარტლისთვის შენ შეგყავს — ეს ციფრები კვარტალობით იცვლება; გადაამოწმე შენს ბაზის იურისდიქციასთan.", expPump:"Pamp$", expGal:"G", expStateLbl:"შტატი", pumpLbl:"პამპი" },
+    syncOn:"☁️ სინქდება ყველა მოწყობილობაზე", syncOff:"📴 მხოლოდ ამ მოწყობილობაზე ინახება.", googleSync:"Google-ით სინქი", signOut:"გასვლა", undo:"დაბრუნება", redo:"წინ", route:"მარშრუტი", routePh:"მაგ. Chicago → Detroit", routeCol:"მარშრუტი", ocrFail:"ფასი ვერ ამოვიკითხე — ჩაწერე ხელით", milesLbl:"მაილი", milesPh:"მაგ. 796", yearWord:"წელი", weekWord:"კვირა", todayBtn:"ახლანდელი", driverMode:"მძღოლი", ownerMode:"ოუნერ-ოპერატორი", expCat:"კატეგორია", expAmt:"თანხა ($)", addExp:"ხარჯის დამატება", net:"Net", totalExp:"ხარჯები", payLbl:"Profit", expTitle:"ხარჯი", startMi:"საწყისი მილი", endMi:"საბოლოო მილი", weekMi:"კვირის მილი", weekMiLbl:"კვირის მილი", addCustomCat:"ახალი კატეგორიის დამატება", customCatPrompt:"ჩაწერე ხარჯის კატეგორია:", saveExp:"შენახვა", cancelEdit:"რედაქტირების გაუქმება", openDetail:"დეტალურად", back:"უკან", fixedExpLbl:"ფიქს.ხარჯი", monthWord:"თვე", maintList:"Maintenance List", maintDesc:"აღწერა", edit:"რედაქტირება", searchPh:"ძებნა...", iftaState:"შტატი", iftaMiles:"მაილი", iftaGallons:"გალონი", iftaRate:"განაკვ. $/გალ", iftaTax:"გადასახადი", iftaTotMiles:"სულ მაილი", iftaTotGal:"სულ გალონი", iftaMpg:"MPG", iftaFuel:"საწვავი", iftaTaxDue:"გადასახდელი", iftaCredit:"კრედიტი", iftaEmpty:"ჯერ შტატი არ დამატებულა", iftaNote:"განაკვეთი ($/გალ) თითო შტატზე მიმდინარე კვარტლისთვის შენ შეგყავს — ეს ციფრები კვარტალობით იცვლება; გადაამოწმე შენს ბაზის იურისდიქციასთan.", expPump:"Pamp$", expGal:"G", expStateLbl:"შტატი", pumpLbl:"პამპი", tAdded:"დაემატა", tUpdated:"განახლდა", tSaved:"შენახულია", tLoad:"ტვირთი", tExp:"ხარჯი", tFuel:"საწვავი", tMile:"მაილი" },
   en:{ title:"4Truckers", price:"Price ($)", pricePh:"e.g. 500", date:"Date", add:"Add", addEnter:"Add ↵",
     myShare:"My share:", companyFee:"Co. %", byWeek:"By week", byMonth:"By month", all:"All", clearAll:"Clear all",
     prevDay:"Previous day", nextDay:"Next day", thisWeek:"This week", lastWeek:"Last week", thisMonth:"This month", lastMonth:"Last month",
     thisYear:"Year", total:"Total", shareSuffix:"— my share", cars:"loads", carsShort:"loads", navPrev:"◀ Prev",
     navNext:"Next ▶", noEntries:"— no entries —", shareFoot:"My share:", day:"Day", priceCol:"Price",
     del:"Delete", noneYet:"No entries yet ⬆️", confirmClear:"Delete all entries?",
-    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Profit", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description", edit:"Edit", searchPh:"Search...", iftaState:"State", iftaMiles:"Miles", iftaGallons:"Gallons", iftaRate:"Rate $/gal", iftaTax:"Tax", iftaTotMiles:"Total miles", iftaTotGal:"Total gallons", iftaMpg:"MPG", iftaFuel:"Fuel", iftaTaxDue:"Tax due", iftaCredit:"Credit", iftaEmpty:"No states added yet", iftaNote:"You enter each state's rate ($/gal) for the current quarter — these change every quarter; verify with your base jurisdiction.", expPump:"Pump$", expGal:"G", expStateLbl:"State", pumpLbl:"Pump" }
+    syncOn:"☁️ Syncing across all devices", syncOff:"📴 Saved on this device only.", googleSync:"Sync with Google", signOut:"Sign out", undo:"Undo", redo:"Redo", route:"Route", routePh:"e.g. Chicago → Detroit", routeCol:"Route", ocrFail:"Couldn't read the price — please type it manually", milesLbl:"Miles", milesPh:"e.g. 796", yearWord:"", weekWord:"week", todayBtn:"Today", driverMode:"Driver", ownerMode:"Owner-Operator", expCat:"Category", expAmt:"Amount ($)", addExp:"Add expense", net:"Net", totalExp:"Expenses", payLbl:"Profit", expTitle:"expense", startMi:"Starting mileage", endMi:"Ending mileage", weekMi:"Weekly mileage", weekMiLbl:"Weekly mileage", addCustomCat:"Add a new category", customCatPrompt:"Type the expense category:", saveExp:"Save", cancelEdit:"Cancel edit", openDetail:"View details", back:"Back", fixedExpLbl:"Fixed cost", monthWord:"month", maintList:"Maintenance List", maintDesc:"Description", edit:"Edit", searchPh:"Search...", iftaState:"State", iftaMiles:"Miles", iftaGallons:"Gallons", iftaRate:"Rate $/gal", iftaTax:"Tax", iftaTotMiles:"Total miles", iftaTotGal:"Total gallons", iftaMpg:"MPG", iftaFuel:"Fuel", iftaTaxDue:"Tax due", iftaCredit:"Credit", iftaEmpty:"No states added yet", iftaNote:"You enter each state's rate ($/gal) for the current quarter — these change every quarter; verify with your base jurisdiction.", expPump:"Pump$", expGal:"G", expStateLbl:"State", pumpLbl:"Pump", tAdded:"added", tUpdated:"updated", tSaved:"saved", tLoad:"Load", tExp:"Expense", tFuel:"Fuel", tMile:"Mileage" }
 };
 function t(k){ const v=T[lang]&&T[lang][k]; return (v!==undefined&&v!==null) ? v : k; }
 function loc(){ return lang==='en'?'en-US':'ka-GE'; }
@@ -679,6 +687,7 @@ function addCar(){
   const route=document.getElementById('route').value.trim();
   const miles=parseFloat(document.getElementById('miles').value)||0;
   pushHistory();
+  const wasEditing=!!editingCarId;
   if(editingCarId){
     const arr=activeCars(); const c=arr.find(x=>x.id===editingCarId);
     if(c){ c.price=price; c.date=date; c.route=route; c.miles=miles; }
@@ -688,7 +697,8 @@ function addCar(){
   }
   priceEl.value=''; document.getElementById('route').value=''; document.getElementById('miles').value='';
   weekPage=0;
-  saveActiveCars(); render(); priceEl.focus();
+  saveActiveCars(); render();
+  showToast('✓ '+t('tLoad')+' '+money(price)+' '+(wasEditing?t('tUpdated'):t('tAdded')));
 }
 function editCar(id){
   const c=activeCars().find(x=>x.id===id); if(!c) return;
@@ -868,7 +878,17 @@ function renderContent(){
   html+=`</tbody></table>`; c.innerHTML=html;
 }
 function render(){ if(appMode==='owner'){ ownerRenderStats(); ownerRenderContent(); } else { renderStats(); renderContent(); } if(detailDesc) renderDetail(); }
-document.getElementById('add').addEventListener('click', addCar);
+function dismissKeyboard(){ const a=document.activeElement; if(a&&a.blur) a.blur(); }
+let toastTimer=null;
+function showToast(msg, warn){
+  const el=document.getElementById('toast'); if(!el) return;
+  el.textContent=msg;
+  el.className = warn ? 'warn show' : 'show';
+  try{ if(navigator.vibrate) navigator.vibrate(warn?[40,40,40]:25); }catch(e){}
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{ el.className = warn ? 'warn' : ''; }, 1600);
+}
+document.getElementById('add').addEventListener('click', ()=>{ dismissKeyboard(); addCar(); });
 document.getElementById('price').addEventListener('keydown', e=>{ if(e.key==='Enter') addCar(); });
 document.getElementById('share').addEventListener('input', e=>{ const v=parseFloat(e.target.value); if(!isNaN(v)){ settings.share=v; saveSettings(); render(); } });
 /* Co. % დაყენება.
@@ -1445,6 +1465,28 @@ function weeklyMiles(mon){
   if(!r || r.start==null || r.end==null) return 0;
   return Math.max(0, r.end-r.start);
 }
+function dhForPeriod(desc){
+  let total=0;
+  Object.keys(weeklyMileage).forEach(mon=>{
+    const r=weeklyMileage[mon]; if(!r || !r.dh) return;
+    let inP=false;
+    if(desc.k==='week') inP=(mon===desc.v);
+    else if(desc.k==='month') inP=(monthKey(mon)===desc.v);
+    else if(desc.k==='year') inP=(mon.slice(0,4)===desc.v);
+    else inP=true;
+    if(inP) total+=r.dh;
+  });
+  return total;
+}
+function dhWeeksForPeriod(desc){
+  return Object.keys(weeklyMileage).filter(mon=>{
+    const r=weeklyMileage[mon]; if(!r || !r.dh) return false;
+    if(desc.k==='week') return mon===desc.v;
+    if(desc.k==='month') return monthKey(mon)===desc.v;
+    if(desc.k==='year') return mon.slice(0,4)===desc.v;
+    return true;
+  }).sort((a,b)=>a<b?1:-1);
+}
 function updateWeekMiDisplay(){
   const s=parseMi(document.getElementById('ownStartMi').value); const e=parseMi(document.getElementById('ownEndMi').value);
   const wm = (!isNaN(s)&&!isNaN(e)) ? Math.max(0, e-s) : 0;
@@ -1459,6 +1501,7 @@ function loadMileageInputs(){
   }
   document.getElementById('ownStartMi').value = (startVal!=null) ? miFmt(startVal) : '';
   document.getElementById('ownEndMi').value = (r.end!=null) ? miFmt(r.end) : '';
+  const dhEl=document.getElementById('ownDH'); if(dhEl) dhEl.value='';
   updateWeekMiDisplay();
 }
 function saveMileageInputs(){
@@ -1466,11 +1509,29 @@ function saveMileageInputs(){
   const sVal=document.getElementById('ownStartMi').value, eVal=document.getElementById('ownEndMi').value;
   const s=sVal.trim()===''?null:parseMi(sVal), e=eVal.trim()===''?null:parseMi(eVal);
   pushHistory();
-  weeklyMileage[k] = { start:(s!=null&&!isNaN(s))?s:null, end:(e!=null&&!isNaN(e))?e:null };
+  weeklyMileage[k] = Object.assign({}, weeklyMileage[k], { start:(s!=null&&!isNaN(s))?s:null, end:(e!=null&&!isNaN(e))?e:null });
   store.set('weeklyMileage', JSON.stringify(weeklyMileage)); pushCloud();
   document.getElementById('ownStartMi').value = (weeklyMileage[k].start!=null) ? miFmt(weeklyMileage[k].start) : '';
   document.getElementById('ownEndMi').value = (weeklyMileage[k].end!=null) ? miFmt(weeklyMileage[k].end) : '';
   updateWeekMiDisplay(); render();
+  const wm=weeklyMileage[k];
+  if(wm && wm.start!=null && wm.end!=null) showToast('✓ '+t('tMile')+' '+miFmt(Math.max(0,wm.end-wm.start)));
+}
+/* DH — თითო ტვირთის deadhead. ემატება კვირის ჯამს და ველი ცარიელდება,
+   რომ შემდეგ ტვირთზე ხელახლა ჩაწერო. */
+function saveDH(){
+  const k=mondayOf(selDate());
+  const raw=(document.getElementById('ownDH').value||'').replace(/[^0-9]/g,'').slice(0,3);
+  const add=raw===''?0:parseInt(raw,10);
+  if(add>0){
+    pushHistory();
+    const cur=(weeklyMileage[k]&&weeklyMileage[k].dh)||0;
+    weeklyMileage[k] = Object.assign({}, weeklyMileage[k], { dh: cur+add });
+    store.set('weeklyMileage', JSON.stringify(weeklyMileage)); pushCloud();
+    render();
+    showToast('✓ DH +'+add);
+  }
+  document.getElementById('ownDH').value='';
 }
 function applyMode(){
   const owner = appMode==='owner';
@@ -1508,6 +1569,7 @@ function addExpense(){
     }
     if(fuelAmt<=0 && pump<=0 && gallons<=0){ const fe=document.getElementById('expFuel'); if(fe) fe.focus(); return; }
     pushHistory();
+    const wasEditingF=!!editingExpId;
     if(editingExpId){
       const ex=expenses.find(e=>e.id===editingExpId);
       if(ex){ ex.cat='Fuel'; ex.amount=fuelAmt; ex.date=date; }
@@ -1520,11 +1582,13 @@ function addExpense(){
     }
     ['expFuel','expPump','expGal','expState'].forEach(id=>{ const x=document.getElementById(id); if(x) x.value=''; });
     saveExpenses(); saveFuels(); render();
-    const fe=document.getElementById('expFuel'); if(fe) fe.focus();
+    const fbits=[]; if(fuelAmt>0) fbits.push('Fuel '+money(fuelAmt)); if(pump>0) fbits.push('Pamp$ '+money(pump));
+    showToast('✓ '+t('tFuel')+(fbits.length?' '+fbits.join(' · '):'')+' '+(wasEditingF?t('tUpdated'):t('tAdded')));
     return;
   }
   if(amt<=0){ el.focus(); return; }
   pushHistory();
+  const wasEditingE=!!editingExpId;
   if(editingExpId){
     const ex=expenses.find(e=>e.id===editingExpId);
     if(ex){ ex.cat=cat; ex.amount=amt; ex.date=date; }
@@ -1535,7 +1599,8 @@ function addExpense(){
   const persistentCats=EXP_CATS.concat(customCats);
   if(!persistentCats.includes(selectedCat)) selectedCat=EXP_CATS[0];
   el.value='';
-  saveExpenses(); populateCats(); updateExpAddBtn(); render(); el.focus();
+  saveExpenses(); populateCats(); updateExpAddBtn(); render();
+  showToast('✓ '+cat+' '+money(amt)+' '+(wasEditingE?t('tUpdated'):t('tAdded')));
 }
 function editExpense(id){
   const ex=expenses.find(e=>e.id===id); if(!ex) return;
@@ -1603,12 +1668,21 @@ function openGrossPage(){ entrySrc='gross'; renderCatPage(); showPage('catPage')
 function openExpPage(){ entrySrc='exp'; renderCatPage(); showPage('catPage'); }
 function openFixedPage(){ entrySrc='fixed'; renderCatPage(); showPage('catPage'); }
 function openPumpPage(){ entrySrc='pump'; renderCatPage(); showPage('catPage'); }
+function openDHPage(){ entrySrc='dh'; catEditKey=null; renderCatPage(); showPage('catPage'); }
 function closeCatPage(){ hidePage('catPage'); catPageCat=null; catEditKey=null; }
 function renderCatPage(){
   const p=document.getElementById('catPage'); if(!p||!detailDesc) return;
   let title='', head='', rows='', tot=0, totColor='var(--del)', neg='−';
   const amtInput=(id,val)=>`<input id="catEditInput" type="number" inputmode="decimal" value="${val}" style="width:92px;padding:4px 6px;font-size:14px;text-align:right" onkeydown="if(event.key==='Enter'){event.preventDefault();catInlineSave('${escJS(id)}')}" onblur="catInlineSave('${escJS(id)}')">`;
-  if(entrySrc==='gross'){
+  if(entrySrc==='dh'){
+    title='DH'; totColor='var(--text)'; neg='';
+    const weeks=dhWeeksForPeriod(detailDesc);
+    tot=weeks.reduce((s,w)=>s+(weeklyMileage[w].dh||0),0);
+    head=`<th>${t('day')}</th><th class="num">DH</th><th></th>`;
+    rows=weeks.length?weeks.map(w=>{ const key='dhweek|'+w; const ed=(catEditKey===key);
+      return `<tr><td>${fmtDay(w)}</td><td class="num">${ed?amtInput(key, weeklyMileage[w].dh):`<span style="font-weight:700">${miFmt(weeklyMileage[w].dh)}</span>`}</td><td class="num">${ed?'':`<button class="m-del" onclick="askEntry('dh','${escJS(key)}')" title="${t('edit')}">✕</button>`}</td></tr>`;
+    }).join(''):`<tr><td colspan="3" class="detail-empty">${t('noEntries')}</td></tr>`;
+  } else if(entrySrc==='gross'){
     title='Gross'; totColor='var(--accent)'; neg='';
     const loads=carsOwner.filter(c=>matchPeriod(c.date, detailDesc)).sort((a,b)=>a.date<b.date?1:-1);
     tot=loads.reduce((s,c)=>s+c.price,0);
@@ -1978,6 +2052,7 @@ function askEditDelete(editCb, delCb){
   document.getElementById('actionSheet').style.display='flex';
 }
 function askEntry(kind, id, b, c){
+  if(kind==='dh'){ askEditDelete(()=>catInlineEdit(id), ()=>{ const w=id.split('|')[1]; pushHistory(); if(weeklyMileage[w]) weeklyMileage[w]=Object.assign({},weeklyMileage[w],{dh:0}); store.set('weeklyMileage',JSON.stringify(weeklyMileage)); pushCloud(); renderCatPage(); render(); }); return; }
   const del = kind==='load'?()=>catDelLoad(id)
     : kind==='fuel'?()=>delFuel(id)
     : kind==='maint'?()=>catDelMaint(id)
@@ -1992,6 +2067,12 @@ function catInlineSave(id){
   const inp=document.getElementById('catEditInput');
   const num = inp ? (parseFloat(inp.value)||0) : 0;
   pushHistory();
+  if(String(id).indexOf('dhweek|')===0){
+    const w=id.split('|')[1];
+    weeklyMileage[w]=Object.assign({}, weeklyMileage[w], { dh: Math.round(num) });
+    store.set('weeklyMileage',JSON.stringify(weeklyMileage)); pushCloud();
+    renderCatPage(); render(); return;
+  }
   const car=carsOwner.find(c=>c.id===id);
   if(car){ car.price=num; store.set('carsOwner',JSON.stringify(carsOwner)); pushCloud(); }
   else { const f=fuels.find(x=>x.id===id);
@@ -2055,6 +2136,7 @@ function renderDetail(){
   const fixedTotal = owner ? exps.filter(e=>e.isFixed).reduce((a,x)=>a+x.amount,0) : 0;
   const eNonFixed = eTotal - fixedTotal;
   const pumpTotal = owner ? fuels.filter(f=>matchPeriod(f.date, detailDesc)).reduce((a,f)=>a+(f.pump||0),0) : 0;
+  const dhTotal = owner ? dhForPeriod(detailDesc) : 0;
   let summary;
   if(owner){
     summary = `<div class="detail-summary">
@@ -2063,6 +2145,7 @@ function renderDetail(){
       ${fixedTotal>0?`<div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('fixedExpLbl')}</span><button class="stat-enter" onclick="openFixedPage()" title="${t('openDetail')}">↵</button></div><div class="val" style="color:var(--del)">−${money(fixedTotal)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('totalExp')}</span><button class="stat-enter" onclick="openExpPage()" title="${t('openDetail')}">↵</button></div><div class="val" style="color:var(--del)">−${money(eNonFixed)}</div></div>
       ${pumpTotal>0?`<div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>${t('pumpLbl')}</span><button class="stat-enter" onclick="openPumpPage()" title="${t('openDetail')}">↵</button></div><div class="val">${money(pumpTotal)}</div></div>`:''}
+      ${dhTotal>0?`<div class="detail-sum-box"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;gap:6px"><span>DH</span><button class="stat-enter" onclick="openDHPage()" title="${t('openDetail')}">↵</button></div><div class="val">${miFmt(dhTotal)}</div></div>`:''}
       <div class="detail-sum-box"><div class="lbl">${t('payLbl')}</div><div class="val" style="color:var(--accent)">${money(g-feeAmt-eTotal)}</div></div>
     </div>`;
   } else {
@@ -2267,12 +2350,13 @@ function ownerRenderContent(){
   c.innerHTML=`<table><thead><tr><th>${t('day')}</th><th>${t('expCat')}</th><th class="num">${t('expAmt')}</th><th></th></tr></thead><tbody>${
     all.map(x=>`<tr style="cursor:pointer" onclick="editExpense('${x.id}')"><td class="rowday">${fmtDay(x.date)}</td><td class="rowday">${esc(x.cat)}</td><td class="num">−${money(x.amount)}</td><td class="num"><button class="del" onclick="event.stopPropagation();askItemAction('exp','${x.id}')">${t('del')}</button></td></tr>`).join('')}</tbody></table>`;
 }
-document.getElementById('expAdd').addEventListener('click', addExpense);
+document.getElementById('expAdd').addEventListener('click', ()=>{ dismissKeyboard(); addExpense(); });
 document.getElementById('expAmt').addEventListener('keydown', e=>{ if(e.key==='Enter') addExpense(); });
 document.getElementById('ownStartMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownEndMi').addEventListener('input', updateWeekMiDisplay);
 document.getElementById('ownStartMi').addEventListener('change', saveMileageInputs);
 document.getElementById('ownEndMi').addEventListener('change', saveMileageInputs);
+document.getElementById('ownDH').addEventListener('change', saveDH);
 load();
 </script>
 </body></html>
