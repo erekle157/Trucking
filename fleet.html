@@ -401,6 +401,7 @@
 <div id="catPage" class="detail-page" style="display:none"></div>
 <div id="iftaPage" class="detail-page" style="display:none"></div>
 <div id="fleetPage" class="detail-page" style="display:none"></div>
+<div id="fleetMemberPage" class="detail-page" style="display:none"></div>
 <div id="actionSheet" class="action-sheet" style="display:none">
   <div class="action-sheet-bg" onclick="closeActionSheet()"></div>
   <div class="action-sheet-box">
@@ -503,13 +504,28 @@ function signInGoogle(){
   });
 }
 function signOutCloud(){ if(typeof firebase!=='undefined'){ firebase.auth().signOut(); } }
+function currentDataPayload(){
+  return { cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, maintenance, ifta, fuels, mode: appMode };
+}
 function pushCloud(){
   if(!db || !cloudUid) return;
   clearTimeout(pushTimer);
   pushTimer=setTimeout(()=>{
-    db.collection('users').doc(cloudUid).set({ cars: carsDriver, carsOwner, settings, expenses, weeklyMileage, customCats, maintenance, ifta, fuels, updatedAt: Date.now() })
+    const payload=currentDataPayload();
+    db.collection('users').doc(cloudUid).set(Object.assign({}, payload, { updatedAt: Date.now() }))
       .catch(e=>console.warn('cloud write failed', e));
+    // fleet წევრი ხარ → ასლი fleet-ში (პატრონისთვის). წევრობის გარეშე — არაფერი.
+    if(myFleet && myFleet.fleetId) pushFleetSnapshot(true);
   }, 400);
+}
+function fleetSnapId(fleetId, uid){ return fleetId+'__'+uid; }
+function pushFleetSnapshot(active){
+  if(!db||!cloudUid||!myFleet||!myFleet.fleetId) return;
+  const nm=(myFleet.name && cloudEmail)? ((cloudEmail||'').split('@')[0]) : ((cloudEmail||'').split('@')[0]||'');
+  db.collection('fleetSnapshots').doc(fleetSnapId(myFleet.fleetId, cloudUid)).set({
+    fleetId: myFleet.fleetId, owner: (myFleet.owner||''), uid: cloudUid, name: (nm||'Member'), active: !!active,
+    data: currentDataPayload(), updatedAt: Date.now()
+  }).catch(e=>console.warn('fleet snapshot failed', e));
 }
 function subscribeCloud(){
   if(!db||!cloudUid) return;
@@ -529,7 +545,7 @@ function subscribeCloud(){
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
         store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
-        document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA();
+        document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); if(myFleet && myFleet.fleetId && myFleet.owner) pushFleetSnapshot(true);
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
@@ -543,7 +559,7 @@ function subscribeCloud(){
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
       store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
-      document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA();
+      document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); if(myFleet && myFleet.fleetId && myFleet.owner) pushFleetSnapshot(true);
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -578,8 +594,17 @@ async function fleetLoadState(){
   if(!db||!cloudUid){ renderFleetUI(); return; }
   try{
     const mem=await db.collection('fleetMembers').doc(cloudUid).get();
-    if(mem.exists){ const d=mem.data()||{}; myFleet={fleetId:d.fleetId, name:d.fleetName||''}; }
+    if(mem.exists){
+      const d=mem.data()||{}; let owner=d.ownerUid||'';
+      if(!owner && d.fleetId){   // ძველი წევრობა owner-ის ველის გარეშე — შევავსოთ fleet-იდან
+        try{ const f=await db.collection('fleets').doc(d.fleetId).get(); if(f.exists) owner=(f.data()||{}).owner||''; }catch(e){}
+        if(owner){ try{ await db.collection('fleetMembers').doc(cloudUid).set({ fleetId:d.fleetId, fleetName:d.fleetName||'', ownerUid:owner, name:d.name||((cloudEmail||'').split('@')[0]||'Member'), joinedAt:d.joinedAt||Date.now() }); }catch(e){} }
+      }
+      myFleet={fleetId:d.fleetId, name:d.fleetName||'', owner};
+    }
   }catch(e){ console.warn('fleet member load', e); }
+  // განკურნება: წევრის მონაცემი თუ უკვე ჩატვირთულია, ასლი ხელახლა ჩავწეროთ (სწორი owner-ით)
+  if(myFleet && myFleet.fleetId && myFleet.owner && (carsDriver.length||carsOwner.length||expenses.length||maintenance.length||fuels.length)) pushFleetSnapshot(true);
   try{
     const owned=await db.collection('fleets').where('owner','==',cloudUid).limit(1).get();
     if(owned && !owned.empty){ const f=owned.docs[0], d=f.data()||{}; ownedFleet={fleetId:f.id, name:d.name||'', code:d.code||f.id}; }
@@ -596,8 +621,9 @@ async function createFleet(){
     let ref=db.collection('fleets').doc(code);
     if((await ref.get()).exists){ code=fleetGenCode()+Math.floor(Math.random()*9); ref=db.collection('fleets').doc(code); }
     await ref.set({ owner:cloudUid, name, code, createdAt:Date.now() });
-    await db.collection('fleetMembers').doc(cloudUid).set({ fleetId:code, fleetName:name, name:((cloudEmail||'').split('@')[0]||'Owner'), joinedAt:Date.now() });
-    ownedFleet={fleetId:code, name, code}; myFleet={fleetId:code, name};
+    await db.collection('fleetMembers').doc(cloudUid).set({ fleetId:code, fleetName:name, ownerUid:cloudUid, name:((cloudEmail||'').split('@')[0]||'Owner'), joinedAt:Date.now() });
+    ownedFleet={fleetId:code, name, code}; myFleet={fleetId:code, name, owner:cloudUid};
+    pushFleetSnapshot(true);       // პატრონის საკუთარი ასლი
     showToast('✓ Fleet: '+code);
     renderFleetUI();
   }catch(e){ console.warn('createFleet', e); showToast(lang==='ka'?'ვერ შეიქმნა':'Could not create', true); }
@@ -612,11 +638,12 @@ async function joinFleet(){
     const d=f.data()||{};
     if(d.owner===cloudUid){ showToast(lang==='ka'?'ეს შენი fleet-ია':'This is your own fleet', true); return; }
     const msg = lang==='ka'
-      ? '"'+(d.name||code)+'"-ში შესვლა?\n\nამ კომპანიის პატრონი დაინახავს შენს შემოსავალსა და ხარჯებს.'
-      : 'Join "'+(d.name||code)+'"?\n\nThe company owner will see your income and expenses.';
+      ? '"'+(d.name||code)+'"-ში შესვლა?\n\nამ კომპანიის პატრონი დაინახავს შენს შემოსავალსა და ხარჯებს, სანამ წევრი ხარ. გასვლის შემდეგ ახალს ვეღარ ნახავს, მაგრამ წევრობის დროინდელი მონაცემი კომპანიას შეუნახdeba.'
+      : 'Join "'+(d.name||code)+'"?\n\nWhile you are a member, the company owner can see your income and expenses. After you leave they can no longer see new entries, but the data from your membership is kept by the company.';
     if(!confirm(msg)) return;
-    await db.collection('fleetMembers').doc(cloudUid).set({ fleetId:code, fleetName:(d.name||''), name:((cloudEmail||'').split('@')[0]||'Driver'), joinedAt:Date.now() });
-    myFleet={fleetId:code, name:(d.name||'')};
+    await db.collection('fleetMembers').doc(cloudUid).set({ fleetId:code, fleetName:(d.name||''), ownerUid:(d.owner||''), name:((cloudEmail||'').split('@')[0]||'Driver'), joinedAt:Date.now() });
+    myFleet={fleetId:code, name:(d.name||''), owner:(d.owner||'')};
+    pushFleetSnapshot(true);        // მაშინვე გამოჩნდეს პატრონთან
     showToast('✓ '+(d.name||code));
     renderFleetUI();
   }catch(e){ console.warn('joinFleet', e); showToast(lang==='ka'?'ვერ შეუერთდი':'Could not join', true); }
@@ -625,7 +652,12 @@ async function leaveFleet(){
   if(!db||!cloudUid||!myFleet) return;
   if(ownedFleet && myFleet.fleetId===ownedFleet.fleetId){ showToast(lang==='ka'?'პატრონი ვერ გადის':'Owner cannot leave', true); return; }
   if(!confirm((lang==='ka'?((myFleet.name||'fleet')+'-იდან გასვლა?'):('Leave '+(myFleet.name||'fleet')+'?')))) return;
-  try{ await db.collection('fleetMembers').doc(cloudUid).delete(); myFleet=null; showToast(lang==='ka'?'✓ გახვედი':'✓ Left'); renderFleetUI(); }
+  try{
+    // ჯერ ასლს „გაყინულად" მოვნიშნავთ (წევრობისას ნებადართულია), მერე წევრობას ვშლით
+    try{ await db.collection('fleetSnapshots').doc(fleetSnapId(myFleet.fleetId, cloudUid)).set({ fleetId:myFleet.fleetId, owner:(myFleet.owner||''), uid:cloudUid, name:((cloudEmail||'').split('@')[0]||'Member'), active:false, data:currentDataPayload(), updatedAt:Date.now() }); }catch(e){ console.warn('freeze snapshot', e); }
+    await db.collection('fleetMembers').doc(cloudUid).delete();
+    myFleet=null; showToast(lang==='ka'?'✓ გახვედი':'✓ Left'); renderFleetUI();
+  }
   catch(e){ console.warn('leaveFleet', e); }
 }
 function renderFleetUI(){
@@ -646,21 +678,30 @@ function renderFleetUI(){
 async function loadFleetMembers(){
   fleetMembers=[]; fleetMemberData={};
   if(!db||!ownedFleet) return;
-  const q=await db.collection('fleetMembers').where('fleetId','==',ownedFleet.fleetId).get();
-  const uids=[];
-  q.forEach(doc=>{ const d=doc.data()||{}; fleetMembers.push({uid:doc.id, name:d.name||doc.id.slice(0,6), self:doc.id===cloudUid}); uids.push(doc.id); });
-  await Promise.all(uids.map(async uid=>{
-    try{ const u=await db.collection('users').doc(uid).get(); fleetMemberData[uid]=u.exists?(u.data()||{}):{}; }
-    catch(e){ fleetMemberData[uid]={__err:true}; }
-  }));
-  // პატრონი პირველ რიგში
-  fleetMembers.sort((a,b)=> (b.self?1:0)-(a.self?1:0) || a.name.localeCompare(b.name));
+  // პატრონი კითხულობს fleet-ის ასლებს (owner-ით — წესში get() აღარ სჭირდება)
+  const q=await db.collection('fleetSnapshots').where('owner','==',cloudUid).get();
+  q.forEach(doc=>{
+    const d=doc.data()||{};
+    const uid=d.uid||doc.id;
+    fleetMembers.push({ uid, name:d.name||uid.slice(0,6), self:uid===cloudUid, active:(d.active!==false) });
+    fleetMemberData[uid]=(d.data&&typeof d.data==='object')?d.data:{};
+  });
+  // პატრონი პირველ რიგში, შემდეგ აქტიური, შემდეგ გასულები
+  fleetMembers.sort((a,b)=> (b.self?1:0)-(a.self?1:0) || (b.active?1:0)-(a.active?1:0) || a.name.localeCompare(b.name));
 }
-/* წევრის მონაცემიდან პერიოდის ჯამი — არსებული ფორმულებით (globals-ის დროებითი swap). */
-function fleetComputeSummary(data, desc){
-  const S={carsOwner,expenses,maintenance,fuels,ifta,weeklyMileage,customCats,settings,appMode};
+/* წევრის რეჟიმი — ჯერ შენახული mode, თორემ მონაცემიდან ვასკვნით. */
+function memberMode(data){
+  if(data.mode==='driver'||data.mode==='owner') return data.mode;
+  if(Array.isArray(data.carsOwner)&&data.carsOwner.length) return 'owner';
+  if(Array.isArray(data.cars)&&data.cars.length) return 'driver';
+  return 'owner';
+}
+/* globals-ის დროებითი ჩატვირთვა წევრის მონაცემით — ფუნქციისთვის. */
+function fleetWithData(data, fn){
+  const S={carsDriver,carsOwner,expenses,maintenance,fuels,ifta,weeklyMileage,customCats,settings,appMode};
   try{
-    appMode='owner';
+    appMode=memberMode(data);
+    carsDriver=Array.isArray(data.cars)?data.cars:[];
     carsOwner=Array.isArray(data.carsOwner)?data.carsOwner:[];
     expenses=Array.isArray(data.expenses)?data.expenses:[];
     maintenance=Array.isArray(data.maintenance)?data.maintenance:[];
@@ -670,17 +711,29 @@ function fleetComputeSummary(data, desc){
     customCats=Array.isArray(data.customCats)?data.customCats:[];
     settings=(data.settings&&typeof data.settings==='object')?data.settings:{share:33,companyFeeHistory:[],fixedWeekHistory:[],fixedMonthHistory:[],perMileHistory:[],fixedWeekOverrides:{},fixedMonthOverrides:{}};
     normalizeSettings();
-    const gArr=carsOwner.filter(c=>matchPeriod(c.date,desc));
-    const g=gArr.reduce((a,c)=>a+c.price,0);
-    const fee=companyFeeAmtForLoads(gArr);
-    const e=allExps().filter(x=>matchPeriod(x.date,desc)).reduce((a,x)=>a+x.amount,0);
-    const pump=fuels.filter(f=>matchPeriod(f.date,desc)).reduce((a,f)=>a+(f.pump||0),0);
-    return {g, fee, e, pump, profit:g-fee-e};
-  } catch(err){ console.warn('fleet summary', err); return {g:0,fee:0,e:0,pump:0,profit:0,err:true}; }
-  finally {
-    carsOwner=S.carsOwner;expenses=S.expenses;maintenance=S.maintenance;fuels=S.fuels;ifta=S.ifta;
+    return fn(appMode);
+  } finally {
+    carsDriver=S.carsDriver;carsOwner=S.carsOwner;expenses=S.expenses;maintenance=S.maintenance;fuels=S.fuels;ifta=S.ifta;
     weeklyMileage=S.weeklyMileage;customCats=S.customCats;settings=S.settings;appMode=S.appMode;
   }
+}
+/* წევრის პერიოდის ჯამი — რეჟიმის მიხედვით (არსებული ფორმულებით). */
+function fleetComputeSummary(data, desc){
+  try{
+    return fleetWithData(data, (mode)=>{
+      if(mode==='driver'){
+        const arr=carsDriver.filter(c=>matchPeriod(c.date,desc));
+        const g=arr.reduce((a,c)=>a+c.price,0);
+        return {mode:'driver', g, share:shareOf(g)};
+      }
+      const gArr=carsOwner.filter(c=>matchPeriod(c.date,desc));
+      const g=gArr.reduce((a,c)=>a+c.price,0);
+      const fee=companyFeeAmtForLoads(gArr);
+      const e=allExps().filter(x=>matchPeriod(x.date,desc)).reduce((a,x)=>a+x.amount,0);
+      const pump=fuels.filter(f=>matchPeriod(f.date,desc)).reduce((a,f)=>a+(f.pump||0),0);
+      return {mode:'owner', g, fee, e, pump, profit:g-fee-e};
+    });
+  } catch(err){ console.warn('fleet summary', err); return {mode:'owner', g:0,fee:0,e:0,pump:0,profit:0,err:true}; }
 }
 function fleetDescFor(kind){
   const td=todayStr();
@@ -700,28 +753,76 @@ async function openFleetPage(){
 }
 function closeFleetPage(){ hidePage('fleetPage'); }
 function setFleetPeriod(k){ fleetPeriod=k; renderFleetPage(); }
+/* ---- წევრის სრული დეტალი — READ ONLY ----
+   არსებულ renderDetail-ს ვიყენებ (globals swap), მერე HTML-იდან ყველა
+   ინტერაქტიული ღილაკი/handler ამოვჭრი — პატრონი ხედავს, ვერაფერს ცვლის. */
+let fleetViewUid=null, fleetMemberPeriod=null;
+function openFleetMember(uid){ fleetViewUid=uid; fleetMemberPeriod=fleetPeriod||'week'; renderFleetMember(); showPage('fleetMemberPage'); }
+function closeFleetMember(){ hidePage('fleetMemberPage'); fleetViewUid=null; }
+function setFleetMemberPeriod(k){ fleetMemberPeriod=k; renderFleetMember(); }
+function renderFleetMember(){
+  const p=document.getElementById('fleetMemberPage'); if(!p||!fleetViewUid) return;
+  const m=fleetMembers.find(x=>x.uid===fleetViewUid)||{name:'?'};
+  const data=fleetMemberData[fleetViewUid]||{};
+  const desc=fleetDescFor(fleetMemberPeriod||'week');
+  let detailHTML='';
+  const SD={detailDesc,detailLabel};
+  try{
+    detailHTML=fleetWithData(data, ()=>{
+      detailDesc=desc; detailLabel='';
+      renderDetail();
+      return document.getElementById('detailPage').innerHTML;
+    });
+  } catch(e){ console.warn('fleet member detail', e); detailHTML='<div style="padding:20px;color:var(--del)">'+(lang==='ka'?'ვერ ჩაიტვირთა':'Could not load')+'</div>'; }
+  finally { detailDesc=SD.detailDesc; detailLabel=SD.detailLabel; }
+  // read-only: წავშალოთ საკუთარი თავსართი + ყველა ღილაკი + ყველა handler
+  detailHTML=detailHTML.replace(/<div class="detail-head">[\s\S]*?<\/div>\s*(?=<div class="detail-summary">)/,'');
+  detailHTML=detailHTML.replace(/<button[\s\S]*?<\/button>/g,'');
+  detailHTML=detailHTML.replace(/\son\w+="[^"]*"/g,'');
+  detailHTML=detailHTML.replace(/style="cursor:pointer[^"]*"/g,'');
+  const per=[['week',t('thisWeek')],['month',t('thisMonth')],['year',todayStr().slice(0,4)],['all',t('total')]];
+  const perBtns=per.map(x=>'<button class="'+(fleetMemberPeriod===x[0]?'active':'')+'" onclick="setFleetMemberPeriod(\''+x[0]+'\')">'+esc(x[1])+'</button>').join('');
+  p.innerHTML='<div class="detail-head"><button class="detail-back" onclick="closeFleetMember()">← '+t('back')+'</button><div class="detail-title">'+esc(m.name)+(m.self?' 👑':'')+'</div></div>'+
+    '<div class="fleet-per">'+perBtns+'</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin:-4px 0 12px">🔒 '+(lang==='ka'?'მხოლოდ საკითხავი':'Read-only')+'</div>'+
+    detailHTML;
+}
 function renderFleetPage(){
   const p=document.getElementById('fleetPage'); if(!p||!ownedFleet) return;
   const desc=fleetDescFor(fleetPeriod);
   const per=[['week',t('thisWeek')],['month',t('thisMonth')],['year',desc.k==='year'?desc.v:todayStr().slice(0,4)],['all',t('total')]];
   const perBtns=per.map(x=>'<button class="'+(fleetPeriod===x[0]?'active':'')+'" onclick="setFleetPeriod(\''+x[0]+'\')">'+esc(x[1])+'</button>').join('');
-  let tot={g:0,fee:0,e:0,profit:0};
+  let tot={g:0, profit:0, share:0, hasOwner:false, hasDriver:false};
+  const shareLbl=(lang==='ka'?'წილი':'Share');
   const cards=fleetMembers.map(m=>{
     const data=fleetMemberData[m.uid]||{};
     if(data.__err) return '<div class="fleet-mcard"><div class="fm-top"><div class="fm-name">'+esc(m.name)+(m.self?' 👑':'')+'</div></div><div style="color:var(--del);font-size:12px">'+(lang==='ka'?'მონაცემი ვერ ჩაიტვირთა':'Could not load data')+'</div></div>';
     const s=fleetComputeSummary(data, desc);
-    tot.g+=s.g; tot.fee+=s.fee; tot.e+=s.e; tot.profit+=s.profit;
-    return '<div class="fleet-mcard"><div class="fm-top"><div class="fm-name">'+esc(m.name)+(m.self?' 👑':'')+'</div></div>'+
-      '<div class="fm-grid">'+
+    tot.g+=s.g;
+    let grid;
+    if(s.mode==='driver'){
+      tot.share+=(s.share||0); tot.hasDriver=true;
+      grid='<div class="fm-grid" style="grid-template-columns:1fr 1fr">'+
         '<div class="fm-box"><div class="fm-lbl">Gross</div><div class="fm-val">'+money(s.g)+'</div></div>'+
-        '<div class="fm-box"><div class="fm-lbl">'+t('totalExp')+'</div><div class="fm-val" style="color:var(--del)">−'+money(s.e+s.fee)+'</div></div>'+
-        '<div class="fm-box"><div class="fm-lbl">'+t('payLbl')+'</div><div class="fm-val" style="color:var(--accent)">'+money(s.profit)+'</div></div>'+
-      '</div></div>';
+        '<div class="fm-box"><div class="fm-lbl">'+shareLbl+'</div><div class="fm-val" style="color:var(--accent)">'+money(s.share||0)+'</div></div>'+
+      '</div>';
+    } else {
+      tot.profit+=(s.profit||0); tot.hasOwner=true;
+      grid='<div class="fm-grid">'+
+        '<div class="fm-box"><div class="fm-lbl">Gross</div><div class="fm-val">'+money(s.g)+'</div></div>'+
+        '<div class="fm-box"><div class="fm-lbl">'+t('totalExp')+'</div><div class="fm-val" style="color:var(--del)">−'+money((s.e||0)+(s.fee||0))+'</div></div>'+
+        '<div class="fm-box"><div class="fm-lbl">'+t('payLbl')+'</div><div class="fm-val" style="color:var(--accent)">'+money(s.profit||0)+'</div></div>'+
+      '</div>';
+    }
+    const modeBadge = s.mode==='driver' ? ' <span style="font-size:10px;color:var(--muted2)">🧑‍✈️</span>' : (m.self?' 👑':' <span style="font-size:10px;color:var(--muted2)">👑</span>');
+    const leftBadge = (m.active===false) ? ' <span style="font-size:10px;color:var(--del);border:1px solid var(--del);border-radius:6px;padding:1px 5px">'+(lang==='ka'?'გასული':'left')+'</span>' : '';
+    const badge = modeBadge + leftBadge;
+    return '<div class="fleet-mcard" style="cursor:pointer" onclick="openFleetMember(\''+escJS(m.uid)+'\')"><div class="fm-top"><div class="fm-name">'+esc(m.name)+badge+'</div><div style="color:var(--muted2)">›</div></div>'+grid+'</div>';
   }).join('');
   const totalBox='<div class="detail-summary">'+
-    '<div class="detail-sum-box"><div class="lbl">Gross</div><div class="val">'+money(tot.g)+'</div></div>'+
-    '<div class="detail-sum-box"><div class="lbl">'+t('totalExp')+'</div><div class="val" style="color:var(--del)">−'+money(tot.e+tot.fee)+'</div></div>'+
-    '<div class="detail-sum-box"><div class="lbl">'+t('payLbl')+'</div><div class="val" style="color:var(--accent)">'+money(tot.profit)+'</div></div>'+
+    '<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ Gross':'Total Gross')+'</div><div class="val">'+money(tot.g)+'</div></div>'+
+    (tot.hasOwner?'<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ Profit':'Total Profit')+'</div><div class="val" style="color:var(--accent)">'+money(tot.profit)+'</div></div>':'')+
+    (tot.hasDriver?'<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ წილი':'Total Share')+'</div><div class="val" style="color:var(--accent)">'+money(tot.share)+'</div></div>':'')+
   '</div>';
   p.innerHTML='<div class="detail-head"><button class="detail-back" onclick="closeFleetPage()">← '+t('back')+'</button><div class="detail-title">🚚 '+esc(ownedFleet.name)+' · '+fleetMembers.length+(lang==='ka'?' მძღოლი':' drivers')+'</div></div>'+
     '<div class="fleet-per">'+perBtns+'</div>'+
