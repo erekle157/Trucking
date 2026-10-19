@@ -518,6 +518,15 @@ function pushCloud(){
     if(myFleet && myFleet.fleetId) pushFleetSnapshot(true);
   }, 400);
 }
+let fleetStateReady=false, cloudDataReady=false, fleetHealed=false;
+/* race-safe: ასლს ვწერთ მხოლოდ მას შემდეგ, რაც ორივე მზადაა —
+   fleet-სტატუსი (myFleet) და ღრუბლის მონაცემიც ჩატვირთულია. ერთხელ სესიაზე. */
+function maybeHealSnapshot(){
+  if(fleetHealed) return;
+  if(fleetStateReady && cloudDataReady && myFleet && myFleet.fleetId && myFleet.owner){
+    fleetHealed=true; pushFleetSnapshot(true);
+  }
+}
 function fleetSnapId(fleetId, uid){ return fleetId+'__'+uid; }
 function pushFleetSnapshot(active){
   if(!db||!cloudUid||!myFleet||!myFleet.fleetId) return;
@@ -545,7 +554,7 @@ function subscribeCloud(){
         store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
         store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
         store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
-        document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); if(myFleet && myFleet.fleetId && myFleet.owner) pushFleetSnapshot(true);
+        document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); cloudDataReady=true; maybeHealSnapshot();
       } else { pushCloud(); }
     } else if(d){
       if(Array.isArray(d.cars)) carsDriver=d.cars;
@@ -559,7 +568,7 @@ function subscribeCloud(){
       store.set('cars',JSON.stringify(carsDriver)); store.set('carsOwner',JSON.stringify(carsOwner));
       store.set('settings',JSON.stringify(settings)); store.set('expenses',JSON.stringify(expenses));
       store.set('weeklyMileage',JSON.stringify(weeklyMileage)); store.set('customCats',JSON.stringify(customCats)); store.set('maintenance',JSON.stringify(maintenance)); store.set('ifta',JSON.stringify(ifta)); store.set('fuels',JSON.stringify(fuels));
-      document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); if(myFleet && myFleet.fleetId && myFleet.owner) pushFleetSnapshot(true);
+      document.getElementById('share').value=settings.share; syncCompanyFeeUI(); syncFixedExpUI(); populateCats(); if(appMode==='owner') loadMileageInputs(); render(); if(document.getElementById('iftaPage').style.display==='block') renderIFTA(); cloudDataReady=true; maybeHealSnapshot();
     }
   }, err=>{ console.warn('snapshot error', err); });
 }
@@ -573,7 +582,7 @@ function initCloud(){
   }catch(e){ db=null; renderAuthBar(); return; }
   firebase.auth().onAuthStateChanged(user=>{
     if(user){ cloudUid=user.uid; cloudEmail=user.email||user.displayName||''; isSignedIn=true; renderAuthBar(); subscribeCloud(); fleetLoadState(); }
-    else { cloudUid=null; isSignedIn=false; if(unsub){ unsub(); unsub=null; } myFleet=null; ownedFleet=null; fleetMembers=[]; fleetMemberData={}; renderAuthBar(); renderFleetUI(); }
+    else { cloudUid=null; isSignedIn=false; if(unsub){ unsub(); unsub=null; } myFleet=null; ownedFleet=null; fleetMembers=[]; fleetMemberData={}; fleetStateReady=false; cloudDataReady=false; fleetHealed=false; renderAuthBar(); renderFleetUI(); }
   });
 }
 /* ============ FLEET (B2B) — მრავალი მძღოლის პანელი პატრონისთვის ============
@@ -604,7 +613,7 @@ async function fleetLoadState(){
     }
   }catch(e){ console.warn('fleet member load', e); }
   // განკურნება: წევრის მონაცემი თუ უკვე ჩატვირთულია, ასლი ხელახლა ჩავწეროთ (სწორი owner-ით)
-  if(myFleet && myFleet.fleetId && myFleet.owner && (carsDriver.length||carsOwner.length||expenses.length||maintenance.length||fuels.length)) pushFleetSnapshot(true);
+  fleetStateReady=true; maybeHealSnapshot();
   try{
     const owned=await db.collection('fleets').where('owner','==',cloudUid).limit(1).get();
     if(owned && !owned.empty){ const f=owned.docs[0], d=f.data()||{}; ownedFleet={fleetId:f.id, name:d.name||'', code:d.code||f.id}; }
