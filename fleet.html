@@ -88,6 +88,8 @@
   .fleet-per { display:flex; gap:7px; margin-bottom:14px; flex-wrap:wrap; }
   .fleet-per button { background:var(--card); border:1px solid var(--border); color:var(--text); padding:6px 13px; border-radius:18px; font-size:13px; font-weight:600; cursor:pointer; }
   .fleet-per button.active { background:var(--accent); color:#fff; border-color:var(--accent); }
+  .detail-head .fleet-del-btn { margin-left:auto; background:none; border:1px solid var(--del); color:var(--del); border-radius:9px; padding:5px 10px; font-size:15px; cursor:pointer; flex:0 0 auto; }
+  .detail-head .fleet-del-btn:hover { background:var(--del); color:#fff; }
   .signout { color:var(--muted2); cursor:pointer; text-decoration:underline; }
   .card { background:var(--card); border-radius:12px; padding:12px; box-shadow:0 1px 3px var(--shadow); margin-bottom:12px; }
   .row { display:flex; gap:8px; flex-wrap:nowrap; align-items:flex-end; }
@@ -675,6 +677,7 @@ function renderFleetUI(){
   el.style.display='';
   if(ownedFleet){
     el.innerHTML='<span class="ftag">👑 '+esc(ownedFleet.name)+' · <span class="fcode">'+esc(ownedFleet.code)+'</span></span>'+
+      '<button class="fbtn ghost" onclick="copyFleetCode()" title="'+(lang==='ka'?'კოდის კოპირება':'Copy code')+'">📋</button>'+
       '<button class="fbtn" onclick="openFleetPage()">🚚 Fleet</button>';
   } else if(myFleet){
     el.innerHTML='<span class="ftag">✓ '+esc(myFleet.name||'fleet')+(lang==='ka'?'-ის წევრი':' member')+'</span>'+
@@ -760,6 +763,45 @@ async function openFleetPage(){
   try{ await loadFleetMembers(); }catch(e){ console.warn(e); }
   renderFleetPage();
 }
+function copyFleetCode(){
+  if(!ownedFleet||!ownedFleet.code) return;
+  const code=ownedFleet.code;
+  const done=()=>showToast(lang==='ka'?('✓ დაკოპირდა: '+code):('✓ Copied: '+code));
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(code).then(done, ()=>fallbackCopy(code,done)); }
+    else fallbackCopy(code, done);
+  }catch(e){ fallbackCopy(code, done); }
+}
+function fallbackCopy(text, done){
+  try{
+    const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta); if(done) done();
+  }catch(e){ showToast(lang==='ka'?('კოდი: '+text):('Code: '+text)); }
+}
+function deleteFleet(){
+  if(!db||!ownedFleet) return;
+  const msg = lang==='ka'
+    ? '"'+(ownedFleet.name||ownedFleet.code)+'"-ის სრულად წაშლა?\n\nმძღოლები აღარ იქნებიან მიბმული და მათი შენახული ასლები წაიშლება. ეს შეუქცევადია.'
+    : 'Delete "'+(ownedFleet.name||ownedFleet.code)+'" completely?\n\nDrivers will be unlinked and their stored copies removed. This cannot be undone.';
+  if(!confirm(msg)) return;
+  const code=ownedFleet.code;
+  (async()=>{
+    try{
+      // წავშალოთ ყველა ასლი (owner-ის უფლებით)
+      const snaps=await db.collection('fleetSnapshots').where('owner','==',cloudUid).get();
+      await Promise.all(snaps.docs.map(d=>db.collection('fleetSnapshots').doc(d.id).delete().catch(()=>{})));
+      // საკუთარი წევრობა
+      try{ await db.collection('fleetMembers').doc(cloudUid).delete(); }catch(e){}
+      // fleet დოკუმენტი
+      await db.collection('fleets').doc(code).delete();
+      ownedFleet=null; myFleet=null; fleetHealed=false;
+      closeFleetPage();
+      showToast(lang==='ka'?'✓ fleet წაიშალა':'✓ Fleet deleted');
+      renderFleetUI();
+    }catch(e){ console.warn('deleteFleet', e); showToast(lang==='ka'?'ვერ წაიშალა':'Could not delete', true); }
+  })();
+}
 function closeFleetPage(){ hidePage('fleetPage'); }
 function setFleetPeriod(k){ fleetPeriod=k; renderFleetPage(); }
 /* ---- წევრის სრული დეტალი — READ ONLY ----
@@ -802,7 +844,7 @@ function renderFleetPage(){
   const per=[['week',t('thisWeek')],['month',t('thisMonth')],['year',desc.k==='year'?desc.v:todayStr().slice(0,4)],['all',t('total')]];
   const perBtns=per.map(x=>'<button class="'+(fleetPeriod===x[0]?'active':'')+'" onclick="setFleetPeriod(\''+x[0]+'\')">'+esc(x[1])+'</button>').join('');
   let tot={g:0, profit:0, share:0, hasOwner:false, hasDriver:false};
-  const shareLbl=(lang==='ka'?'წილი':'Share');
+  const shareLbl=(lang==='ka'?'მძღოლის წილი':'Driver share');
   const cards=fleetMembers.map(m=>{
     const data=fleetMemberData[m.uid]||{};
     if(data.__err) return '<div class="fleet-mcard"><div class="fm-top"><div class="fm-name">'+esc(m.name)+(m.self?' 👑':'')+'</div></div><div style="color:var(--del);font-size:12px">'+(lang==='ka'?'მონაცემი ვერ ჩაიტვირთა':'Could not load data')+'</div></div>';
@@ -831,9 +873,9 @@ function renderFleetPage(){
   const totalBox='<div class="detail-summary">'+
     '<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ Gross':'Total Gross')+'</div><div class="val">'+money(tot.g)+'</div></div>'+
     (tot.hasOwner?'<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ Profit':'Total Profit')+'</div><div class="val" style="color:var(--accent)">'+money(tot.profit)+'</div></div>':'')+
-    (tot.hasDriver?'<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ წილი':'Total Share')+'</div><div class="val" style="color:var(--accent)">'+money(tot.share)+'</div></div>':'')+
+    (tot.hasDriver?'<div class="detail-sum-box"><div class="lbl">'+(lang==='ka'?'სულ მძღოლის წილი':'Total driver share')+'</div><div class="val" style="color:var(--accent)">'+money(tot.share)+'</div></div>':'')+
   '</div>';
-  p.innerHTML='<div class="detail-head"><button class="detail-back" onclick="closeFleetPage()">← '+t('back')+'</button><div class="detail-title">🚚 '+esc(ownedFleet.name)+' · '+fleetMembers.length+(lang==='ka'?' მძღოლი':' drivers')+'</div></div>'+
+  p.innerHTML='<div class="detail-head"><button class="detail-back" onclick="closeFleetPage()">← '+t('back')+'</button><div class="detail-title">🚚 '+esc(ownedFleet.name)+' · '+fleetMembers.length+(lang==='ka'?' მძღოლი':' drivers')+'</div><button class="fleet-del-btn" onclick="deleteFleet()" title="'+(lang==='ka'?'fleet-ის წაშლა':'Delete fleet')+'">🗑</button></div>'+
     '<div class="fleet-per">'+perBtns+'</div>'+
     totalBox+
     (cards||'<div style="color:var(--muted);padding:10px">'+(lang==='ka'?'ჯერ მძღოლი არ შემოერთებულა. გაუზიარე კოდი: ':'No drivers yet. Share code: ')+esc(ownedFleet.code)+'</div>');
